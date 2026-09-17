@@ -1,5 +1,6 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
+import { Sidebar } from "@/components/Sidebar";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -20,7 +21,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="bg-slate-50 font-sans antialiased">
-        {children}
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <div className="flex-1">{children}</div>
+        </div>
         <Scripts />
       </body>
     </html>
