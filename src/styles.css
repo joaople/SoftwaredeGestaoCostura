@@ -8,6 +8,8 @@
 @custom-variant dark (&:is(.dark *));
 @plugin "@tailwindcss/typography";
 
+
+
 @theme {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
