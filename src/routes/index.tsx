@@ -1,21 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Activity,
-  ArrowUpRight,
-  CheckCircle2,
-  Package,
-  Users,
-} from "lucide-react";
+import { Activity, ArrowUpRight, CheckCircle2, Package, Users,} from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/")({

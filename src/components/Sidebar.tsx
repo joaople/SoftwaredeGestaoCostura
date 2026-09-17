@@ -34,7 +34,7 @@ export function Sidebar() {
         </div>
         <div>
           <p className="text-sm font-semibold leading-tight text-white">
-            Costura Flow
+            Confec time
           </p>
           <p className="text-xs leading-tight text-orange-400">
             Gestão de produção
