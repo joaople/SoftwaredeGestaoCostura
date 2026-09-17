@@ -11,7 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as CadastrarCostureiraRouteImport } from './routes/cadastrar-costureira'
+import { Route as CostureirasRouteImport } from './routes/costureiras'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +23,40 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CadastrarCostureiraRoute = CadastrarCostureiraRouteImport.update({
-  id: '/cadastrar-costureira',
-  path: '/cadastrar-costureira',
+const CostureirasRoute = CostureirasRouteImport.update({
+  id: '/costureiras',
+  path: '/costureiras',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/cadastrar-costureira': typeof CadastrarCostureiraRoute
+  '/costureiras': typeof CostureirasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/cadastrar-costureira': typeof CadastrarCostureiraRoute
+  '/costureiras': typeof CostureirasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/cadastrar-costureira': typeof CadastrarCostureiraRoute
+  '/costureiras': typeof CostureirasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/cadastrar-costureira'
+  fullPaths: '/' | '/about' | '/costureiras'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/cadastrar-costureira'
-  id: '__root__' | '/' | '/about' | '/cadastrar-costureira'
+  to: '/' | '/about' | '/costureiras'
+  id: '__root__' | '/' | '/about' | '/costureiras'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  CadastrarCostureiraRoute: typeof CadastrarCostureiraRoute
+  CostureirasRoute: typeof CostureirasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,11 +75,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cadastrar-costureira': {
-      id: '/cadastrar-costureira'
-      path: '/cadastrar-costureira'
-      fullPath: '/cadastrar-costureira'
-      preLoaderRoute: typeof CadastrarCostureiraRouteImport
+    '/costureiras': {
+      id: '/costureiras'
+      path: '/costureiras'
+      fullPath: '/costureiras'
+      preLoaderRoute: typeof CostureirasRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,7 +88,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  CadastrarCostureiraRoute: CadastrarCostureiraRoute,
+  CostureirasRoute: CostureirasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
