@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { criarCostureira, excluirCostureira } from "@/lib/api";
@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const Route = createFileRoute("/costureiras")({
+export const Route = createFileRoute("/costureiras/")({
   component: ListaCostureiras,
 });
 
@@ -179,7 +179,15 @@ function ListaCostureiras() {
               <TableBody>
                 {linhas.map((linha) => (
                   <TableRow key={linha.id}>
-                    <TableCell className="font-medium">{linha.nome}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link
+                        to="/costureiras/$id"
+                        params={{ id: linha.id }}
+                        className="hover:underline"
+                      >
+                        {linha.nome}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={linha.ativa ? "default" : "secondary"}>
                         {linha.ativa ? "Ativa" : "Inativa"}
