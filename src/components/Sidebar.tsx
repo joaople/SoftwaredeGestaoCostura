@@ -47,13 +47,19 @@ export function Sidebar() {
           COSTUREIRAS
         </p>
         {costureiras.map((c) => (
-          <div
+          <Link
             key={c.id}
-            className="flex items-center gap-3 rounded-md px-2 py-2 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            to="/costureiras/$id"
+            params={{ id: c.id }}
+            className={`flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors ${
+              isActive(`/costureiras/${c.id}`)
+                ? "bg-white/10 text-white"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
           >
             <User className="h-4 w-4" />
             {c.nome}
-          </div>
+          </Link>
         ))}
       </nav>
 
