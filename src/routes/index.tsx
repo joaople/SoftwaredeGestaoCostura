@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Activity, ArrowUpRight, CheckCircle2, Package, Users,} from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { obterPainel, type DashboardData } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,22 +9,6 @@ import { Progress } from "@/components/ui/progress";
 export const Route = createFileRoute("/")({
   component: Dashboard,
 });
-
-type RankingPerson = {
-  name: string;
-  pieces: number;
-  efficiency: number;
-};
-
-type DashboardData = {
-  costureirasAtivas: number;
-  pecasProduzidasMes: number;
-  eficienciaMedia: number;
-  ranking: RankingPerson[];
-  metaHojePercentual: number;
-  pecasHoje: number;
-  metaHojeTotal: number;
-};
 
 function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -40,97 +24,7 @@ function Dashboard() {
     setErro(null);
 
     try {
-      const hoje = new Date();
-      const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10);
-      const dataHoje = hoje.toISOString().slice(0, 10);
-
-      // 1. Costureiras ativas + suas metas
-      const { data: costureiras, error: erroCostureiras } = await supabase
-        .from("costureiras")
-        .select("id, nome, meta_mensal")
-        .eq("ativa", true);
-
-      if (erroCostureiras) throw erroCostureiras;
-
-      // 2. Produção do mês inteiro, pra ranking e total
-      const { data: producaoMes, error: erroProducaoMes } = await supabase
-        .from("producao_diaria")
-        .select("costureira_id, quantidade")
-        .gte("data", inicioDoMes);
-
-      if (erroProducaoMes) throw erroProducaoMes;
-
-      // 3. Produção só de hoje
-      const { data: producaoHoje, error: erroProducaoHoje } = await supabase
-        .from("producao_diaria")
-        .select("quantidade")
-        .eq("data", dataHoje);
-
-      if (erroProducaoHoje) throw erroProducaoHoje;
-
-      // 4. Meta de hoje da equipe
-      const { data: metaHoje, error: erroMetaHoje } = await supabase
-        .from("metas_diarias")
-        .select("meta_pecas")
-        .eq("data", dataHoje)
-        .maybeSingle();
-
-      if (erroMetaHoje) throw erroMetaHoje;
-
-      // --- Agora processa tudo em JS ---
-
-      // Soma peças por costureira, pra montar o ranking
-      const totalPorCostureira = new Map<string, number>();
-      for (const linha of producaoMes ?? []) {
-        const atual = totalPorCostureira.get(linha.costureira_id) ?? 0;
-        totalPorCostureira.set(linha.costureira_id, atual + linha.quantidade);
-      }
-
-      const ranking: RankingPerson[] = (costureiras ?? [])
-        .map((c) => {
-          const pecas = totalPorCostureira.get(c.id) ?? 0;
-          const eficiencia =
-            c.meta_mensal > 0 ? Math.round((pecas / c.meta_mensal) * 100) : 0;
-          return { name: c.nome, pieces: pecas, efficiency: eficiencia };
-        })
-        .sort((a, b) => b.pieces - a.pieces)
-        .slice(0, 4);
-
-      const pecasProduzidasMes = Array.from(totalPorCostureira.values()).reduce(
-        (soma, valor) => soma + valor,
-        0,
-      );
-
-      const metaTotalMensal = (costureiras ?? []).reduce(
-        (soma, c) => soma + c.meta_mensal,
-        0,
-      );
-
-      const eficienciaMedia =
-        metaTotalMensal > 0
-          ? Math.round((pecasProduzidasMes / metaTotalMensal) * 1000) / 10
-          : 0;
-
-      const pecasHoje = (producaoHoje ?? []).reduce(
-        (soma, linha) => soma + linha.quantidade,
-        0,
-      );
-
-      const metaHojeTotal = metaHoje?.meta_pecas ?? 0;
-      const metaHojePercentual =
-        metaHojeTotal > 0 ? Math.round((pecasHoje / metaHojeTotal) * 100) : 0;
-
-      setData({
-        costureirasAtivas: costureiras?.length ?? 0,
-        pecasProduzidasMes,
-        eficienciaMedia,
-        ranking,
-        metaHojePercentual,
-        pecasHoje,
-        metaHojeTotal,
-      });
+      setData(await obterPainel());
     } catch (e) {
       console.error(e);
       setErro("Não foi possível carregar os dados. Tente novamente.");

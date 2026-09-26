@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Scissors, LayoutGrid, Users, User } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { listarCostureirasAtivas } from "@/lib/api";
 
 type Costureira = {
   id: string;
@@ -13,15 +13,17 @@ export function Sidebar() {
   const location = useLocation();
 
   useEffect(() => {
-    async function carregar() {
-      const { data, error } = await supabase
-        .from("costureiras")
-        .select("id, nome")
-        .eq("ativa", true);
+    let cancelado = false;
 
-      if (!error && data) setCostureiras(data);
-    }
-    carregar();
+    listarCostureirasAtivas()
+      .then((lista) => {
+        if (!cancelado) setCostureiras(lista);
+      })
+      .catch((e) => console.error(e));
+
+    return () => {
+      cancelado = true;
+    };
   }, []);
 
   const isActive = (path: string) => location.pathname === path;

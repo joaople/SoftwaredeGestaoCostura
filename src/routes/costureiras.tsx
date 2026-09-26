@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { listarCostureirasComProducao, type LinhaCostureira } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {Card, CardContent, CardDescription, CardHeader,CardTitle,} from "@/components/ui/card";
@@ -9,14 +9,6 @@ import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow,} from "@/compo
 export const Route = createFileRoute("/costureiras")({
   component: ListaCostureiras,
 });
-
-type LinhaCostureira = {
-  id: string;
-  nome: string;
-  metaMensal: number;
-  pecasProduzidas: number;
-  ativa: boolean;
-};
 
 function ListaCostureiras() {
   const [linhas, setLinhas] = useState<LinhaCostureira[]>([]);
@@ -32,40 +24,7 @@ function ListaCostureiras() {
     setErro(null);
 
     try {
-      const hoje = new Date();
-      const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10);
-
-      const { data: costureiras, error: erroCostureiras } = await supabase
-        .from("costureiras")
-        .select("id, nome, meta_mensal, ativa")
-        .order("nome");
-
-      if (erroCostureiras) throw erroCostureiras;
-
-      const { data: producaoMes, error: erroProducao } = await supabase
-        .from("producao_diaria")
-        .select("costureira_id, quantidade")
-        .gte("data", inicioDoMes);
-
-      if (erroProducao) throw erroProducao;
-
-      const totalPorCostureira = new Map<string, number>();
-      for (const linha of producaoMes ?? []) {
-        const atual = totalPorCostureira.get(linha.costureira_id) ?? 0;
-        totalPorCostureira.set(linha.costureira_id, atual + linha.quantidade);
-      }
-
-      const resultado: LinhaCostureira[] = (costureiras ?? []).map((c) => ({
-        id: c.id,
-        nome: c.nome,
-        metaMensal: c.meta_mensal,
-        pecasProduzidas: totalPorCostureira.get(c.id) ?? 0,
-        ativa: c.ativa,
-      }));
-
-      setLinhas(resultado);
+      setLinhas(await listarCostureirasComProducao());
     } catch (e) {
       console.error(e);
       setErro("Não foi possível carregar as costureiras. Tente novamente.");
