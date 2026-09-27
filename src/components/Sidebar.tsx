@@ -27,23 +27,23 @@ export function Sidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-[#0f1b3d] text-slate-300">
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-[var(--line)] bg-[var(--sidebar)] text-[var(--sidebar-foreground)]">
       <div className="flex items-center gap-3 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
-          <Scissors className="h-5 w-5 text-white" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--lagoon)]">
+          <Scissors className="h-5 w-5 text-[var(--sea-ink)]" />
         </div>
         <div>
-          <p className="text-sm font-semibold leading-tight text-white">
+          <p className="text-sm font-semibold leading-tight text-[var(--sea-ink)]">
             Confec time
           </p>
-          <p className="text-xs leading-tight text-orange-400">
+          <p className="text-xs leading-tight text-[var(--lagoon-deep)]">
             Gestão de produção
           </p>
         </div>
       </div>
 
       <nav className="mt-2 flex flex-col gap-1 px-3">
-        <p className="px-2 pb-2 text-xs font-medium tracking-wide text-slate-500">
+        <p className="px-2 pb-2 text-xs font-medium tracking-wide text-[var(--sea-ink-soft)]">
           COSTUREIRAS
         </p>
         {costureiras.map((c) => (
@@ -53,8 +53,8 @@ export function Sidebar() {
             params={{ id: c.id }}
             className={`flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors ${
               isActive(`/costureiras/${c.id}`)
-                ? "bg-white/10 text-white"
-                : "text-slate-300 hover:bg-white/5 hover:text-white"
+                ? "bg-[var(--chip-bg)] text-[var(--sea-ink)]"
+                : "text-[var(--sea-ink-soft)] hover:bg-[var(--link-bg-hover)] hover:text-[var(--sea-ink)]"
             }`}
           >
             <User className="h-4 w-4" />
@@ -63,10 +63,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="mx-5 my-4 border-t border-white/10" />
+      <div className="mx-5 my-4 border-t border-[var(--line)]" />
 
       <nav className="flex flex-col gap-1 px-3">
-        <p className="px-2 pb-2 text-xs font-medium tracking-wide text-slate-500">
+        <p className="px-2 pb-2 text-xs font-medium tracking-wide text-[var(--sea-ink-soft)]">
           GESTÃO
         </p>
 
@@ -74,8 +74,8 @@ export function Sidebar() {
           to="/"
           className={`flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors ${
             isActive("/")
-              ? "bg-white/10 text-white"
-              : "text-slate-300 hover:bg-white/5 hover:text-white"
+              ? "bg-[var(--chip-bg)] text-[var(--sea-ink)]"
+              : "text-[var(--sea-ink-soft)] hover:bg-[var(--link-bg-hover)] hover:text-[var(--sea-ink)]"
           }`}
         >
           <LayoutGrid className="h-4 w-4" />
@@ -83,11 +83,11 @@ export function Sidebar() {
         </Link>
 
         <Link
-          to ="/costureiras"
+          to="/costureiras"
           className={`flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors ${
             isActive("/costureiras")
-              ? "bg-white/10 text-white"
-              : "text-slate-300 hover:bg-white/5 hover:text-white"
+              ? "bg-[var(--chip-bg)] text-[var(--sea-ink)]"
+              : "text-[var(--sea-ink-soft)] hover:bg-[var(--link-bg-hover)] hover:text-[var(--sea-ink)]"
           }`}
         >
           <Users className="h-4 w-4" />
