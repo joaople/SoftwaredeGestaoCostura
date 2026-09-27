@@ -133,14 +133,14 @@ function ListaCostureiras() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-5 py-10 text-slate-900">
+    <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
       <header className="mb-8 flex items-center justify-between">
         <div>
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-emerald-600">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[var(--lagoon-deep)]">
             CosturaFlow
           </p>
           <h1 className="text-3xl font-bold tracking-tight">Costureiras</h1>
-          <p className="mt-2 text-slate-500">
+          <p className="mt-2 text-[var(--sea-ink-soft)]">
             Gerencie a equipe cadastrada e acompanhe a produção do mês.
           </p>
         </div>
@@ -158,11 +158,11 @@ function ListaCostureiras() {
         </CardHeader>
 
         <CardContent>
-          {loading && <p className="text-sm text-slate-500">Carregando...</p>}
+          {loading && <p className="text-sm text-[var(--sea-ink-soft)]">Carregando...</p>}
           {erro && <p className="text-sm text-red-600">{erro}</p>}
 
           {!loading && !erro && linhas.length === 0 && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[var(--sea-ink-soft)]">
               Nenhuma costureira cadastrada ainda.
             </p>
           )}

@@ -213,17 +213,17 @@ function PerfilCostureira() {
 
   if (loading) {
     return (
-      <main className="mx-auto min-h-screen max-w-6xl px-5 py-10 text-slate-900">
-        <p className="text-sm text-slate-500">Carregando...</p>
+      <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
+        <p className="text-sm text-[var(--sea-ink-soft)]">Carregando...</p>
       </main>
     );
   }
 
   if (naoEncontrada) {
     return (
-      <main className="mx-auto min-h-screen max-w-6xl px-5 py-10 text-slate-900">
+      <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
         <h1 className="text-xl font-semibold">Costureira não encontrada</h1>
-        <Link to="/costureiras" className="text-sm text-emerald-600 underline">
+        <Link to="/costureiras" className="text-sm text-[var(--lagoon-deep)] underline">
           Voltar para Costureiras
         </Link>
       </main>
@@ -231,10 +231,10 @@ function PerfilCostureira() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-5 py-10 text-slate-900">
+    <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
       {erro && <p className="mb-4 text-sm text-red-600">{erro}</p>}
       {aviso && (
-        <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+        <div className="mb-4 rounded-md border border-[var(--line)] bg-[var(--chip-bg)] px-4 py-2 text-sm text-[var(--sea-ink)]">
           {aviso}
         </div>
       )}
@@ -244,26 +244,26 @@ function PerfilCostureira() {
           <h1 className="text-2xl font-bold uppercase tracking-tight">
             {costureira?.nome}
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[var(--sea-ink-soft)]">
             {costureira?.funcao} · {costureira?.turno}
           </p>
         </div>
 
         <div className="flex gap-6 text-right">
           <div>
-            <p className="text-xs uppercase text-slate-500">Peças</p>
+            <p className="text-xs uppercase text-[var(--sea-ink-soft)]">Peças</p>
             <p className="text-2xl font-semibold tabular-nums">
               {totais.quantidade}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase text-slate-500">Tempo</p>
+            <p className="text-xs uppercase text-[var(--sea-ink-soft)]">Tempo</p>
             <p className="text-2xl font-semibold tabular-nums">
               {formatarMinutos(totais.minutos)}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase text-slate-500">Eficiência</p>
+            <p className="text-xs uppercase text-[var(--sea-ink-soft)]">Eficiência</p>
             <p className="text-2xl font-semibold tabular-nums">
               {totais.eficiencia.toFixed(1)}%
             </p>
@@ -280,14 +280,14 @@ function PerfilCostureira() {
 
       <div className="mt-6 space-y-6">
         {sessoes.length === 0 && (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[var(--sea-ink-soft)]">
             Nenhuma sessão registrada para esta costureira.
           </p>
         )}
 
         {agrupadoPorData.map(([data, sessoesDoDia]) => (
           <section key={data} className="space-y-4">
-            <h2 className="text-sm font-semibold uppercase text-slate-500">
+            <h2 className="text-sm font-semibold uppercase text-[var(--sea-ink-soft)]">
               {formatarData(data)}
             </h2>
 
@@ -312,7 +312,7 @@ function PerfilCostureira() {
                         {sessao.sequencia}ª sessão ·{" "}
                         {sessao.operacao || "Sem operação"}
                       </CardTitle>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-[var(--sea-ink-soft)]">
                         Início {formatarHora(sessao.hora_inicio)} · TP{" "}
                         {Number(sessao.tempo_padrao).toFixed(2)} min/peça
                       </p>
@@ -350,7 +350,7 @@ function PerfilCostureira() {
                             <TableRow>
                               <TableCell
                                 colSpan={6}
-                                className="text-sm text-slate-500"
+                                className="text-sm text-[var(--sea-ink-soft)]"
                               >
                                 Sem apontamentos nesta sessão.
                               </TableCell>
@@ -384,7 +384,7 @@ function PerfilCostureira() {
                                   <span
                                     className={
                                       pct >= 100
-                                        ? "font-semibold text-emerald-600"
+                                        ? "font-semibold text-[var(--lagoon-deep)]"
                                         : ""
                                     }
                                   >
@@ -478,7 +478,7 @@ function NovaSessaoForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-wrap items-end gap-3 rounded-md border border-slate-200 bg-white p-3"
+      className="flex flex-wrap items-end gap-3 rounded-md border border-[var(--border)] bg-[var(--card)] p-3"
     >
       <Campo label="Data">
         <Input
@@ -573,7 +573,7 @@ function NovoApontamentoForm({
           required
         />
       </Campo>
-      <p className="w-full text-xs text-slate-500">
+      <p className="w-full text-xs text-[var(--sea-ink-soft)]">
         O tempo gasto é calculado automaticamente: hora do apontamento menos o
         início da sessão (ou o apontamento anterior).
       </p>
@@ -598,7 +598,7 @@ function Campo({
 }) {
   return (
     <div className="grid gap-1">
-      <Label className="text-xs text-slate-500">{label}</Label>
+      <Label className="text-xs text-[var(--sea-ink-soft)]">{label}</Label>
       <div className="w-40">{children}</div>
     </div>
   );

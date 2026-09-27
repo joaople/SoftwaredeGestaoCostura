@@ -20,10 +20,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="bg-slate-50 font-sans antialiased">
-        <div className="flex min-h-screen">
+      <body className="bg-[var(--bg-base)] font-sans antialiased text-[var(--foreground)]">
+        <div className="flex min-h-screen bg-[var(--bg-base)]">
           <Sidebar />
-          <div className="flex-1">{children}</div>
+          <div className="flex-1 bg-[var(--bg-base)] text-[var(--foreground)]">
+            {children}
+          </div>
         </div>
         <Scripts />
       </body>

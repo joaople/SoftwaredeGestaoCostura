@@ -141,30 +141,30 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <main className="mx-auto min-h-screen max-w-6xl bg-slate-50 px-5 py-10 text-slate-900">
-        <p className="text-slate-500">Carregando painel...</p>
+      <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
+        <p className="text-[var(--sea-ink-soft)]">Carregando painel...</p>
       </main>
     );
   }
 
   if (erro || !data) {
     return (
-      <main className="mx-auto min-h-screen max-w-6xl bg-slate-50 px-5 py-10 text-slate-900">
+      <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
         <p className="text-red-600">{erro ?? "Erro desconhecido."}</p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl bg-slate-50 px-5 py-10 text-slate-900">
+    <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
       <header className="mb-8">
-        <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-emerald-600">
+        <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[var(--lagoon-deep)]">
           CosturaFlow
         </p>
         <h1 className="text-3xl font-bold tracking-tight">
           Painel das costureiras
         </h1>
-        <p className="mt-2 text-slate-500">
+        <p className="mt-2 text-[var(--sea-ink-soft)]">
           Acompanhe a produção e o desempenho da equipe.
         </p>
       </header>
@@ -201,7 +201,7 @@ function Dashboard() {
 
           <CardContent className="space-y-5">
             {data.ranking.length === 0 && (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-[var(--sea-ink-soft)]">
                 Nenhuma produção registrada este mês ainda.
               </p>
             )}
@@ -210,12 +210,12 @@ function Dashboard() {
               <div key={person.name}>
                 <div className="mb-2 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex size-7 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
+                    <span className="flex size-7 items-center justify-center rounded-full bg-[var(--hero-a)] text-sm font-bold text-[var(--lagoon-deep)]">
                       {index + 1}
                     </span>
                     <div>
                       <p className="font-semibold">{person.name}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-[var(--sea-ink-soft)]">
                         {person.pieces} peças produzidas
                       </p>
                     </div>
@@ -241,17 +241,17 @@ function Dashboard() {
           </CardHeader>
 
           <CardContent className="space-y-5">
-            <div className="rounded-xl bg-emerald-50 p-4">
+            <div className="rounded-xl bg-[var(--chip-bg)] p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-emerald-900">
+                <p className="text-sm font-medium text-[var(--sea-ink)]">
                   Meta do dia
                 </p>
-                <CheckCircle2 className="size-5 text-emerald-600" />
+                <CheckCircle2 className="size-5 text-[var(--lagoon-deep)]" />
               </div>
-              <p className="mt-2 text-3xl font-bold text-emerald-900">
+              <p className="mt-2 text-3xl font-bold text-[var(--sea-ink)]">
                 {data.metaHojePercentual}%
               </p>
-              <p className="mt-1 text-sm text-emerald-700">
+              <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
                 {data.pecasHoje} de {data.metaHojeTotal} peças
               </p>
             </div>
@@ -259,11 +259,11 @@ function Dashboard() {
             <div className="flex items-center justify-between border-t pt-4">
               <div>
                 <p className="font-semibold">Ver costureiras</p>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-[var(--sea-ink-soft)]">
                   Gerencie a equipe e a produção.
                 </p>
               </div>
-              <ArrowUpRight className="size-5 text-slate-500" />
+              <ArrowUpRight className="size-5 text-[var(--sea-ink-soft)]" />
             </div>
           </CardContent>
         </Card>
@@ -286,12 +286,12 @@ function StatCard({
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-[var(--sea-ink-soft)]">
           {icon}
           {label}
         </div>
         <p className="mt-3 text-3xl font-bold">{value}</p>
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
+        <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">{description}</p>
       </CardContent>
     </Card>
   );
