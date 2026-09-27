@@ -27,7 +27,7 @@ export function Sidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <aside className="flex h-screen w-64 flex-shrink-0 flex-col bg-[#0f1b3d] text-slate-300">
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-[#0f1b3d] text-slate-300">
       <div className="flex items-center gap-3 px-5 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
           <Scissors className="h-5 w-5 text-white" />
