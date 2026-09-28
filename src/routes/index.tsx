@@ -243,12 +243,12 @@ function Dashboard() {
           <CardContent className="space-y-5">
             <div className="rounded-xl bg-[var(--chip-bg)] p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-[var(--sea-ink)]">
+                <p className="text-sm font-medium text-white">
                   Meta do dia
                 </p>
                 <CheckCircle2 className="size-5 text-[var(--lagoon-deep)]" />
               </div>
-              <p className="mt-2 text-3xl font-bold text-[var(--sea-ink)]">
+              <p className="mt-2 text-3xl font-bold text-white">
                 {data.metaHojePercentual}%
               </p>
               <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
