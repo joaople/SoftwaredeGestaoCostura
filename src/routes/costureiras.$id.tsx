@@ -234,7 +234,7 @@ function PerfilCostureira() {
     <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
       {erro && <p className="mb-4 text-sm text-red-600">{erro}</p>}
       {aviso && (
-        <div className="mb-4 rounded-md border border-[var(--line)] bg-[var(--chip-bg)] px-4 py-2 text-sm text-[var(--sea-ink)]">
+        <div className="mb-4 rounded-md border border-[var(--line)] bg-[var(--chip-bg)] px-4 py-2 text-sm text-white">
           {aviso}
         </div>
       )}
