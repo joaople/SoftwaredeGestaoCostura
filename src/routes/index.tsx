@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Activity, ArrowUpRight, CheckCircle2, Package, Users,} from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { hojeISO, listarApontamentos } from "@/lib/production";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -40,90 +41,86 @@ function Dashboard() {
     setErro(null);
 
     try {
-      const hoje = new Date();
-      const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10);
-      const dataHoje = hoje.toISOString().slice(0, 10);
+      // Data local (não UTC), no formato YYYY-MM-DD
+      const dataHoje = hojeISO();
+      const inicioDoMes = `${dataHoje.slice(0, 8)}01`;
 
-      // 1. Costureiras ativas + suas metas
-      const { data: costureiras, error: erroCostureiras } = await supabase
-        .from("costureiras")
-        .select("id, nome, meta_mensal")
-        .eq("ativa", true);
+      // As três consultas independentes rodam ao mesmo tempo
+      const [resCostureiras, resSessoes, resMetaHoje] = await Promise.all([
+        supabase.from("costureiras").select("id, nome").eq("ativa", true),
+        supabase
+          .from("sessoes_producao")
+          .select("id, costureira_id, data, tempo_padrao")
+          .gte("data", inicioDoMes),
+        supabase
+          .from("metas_diarias")
+          .select("meta_pecas")
+          .eq("data", dataHoje)
+          .maybeSingle(),
+      ]);
 
-      if (erroCostureiras) throw erroCostureiras;
+      if (resCostureiras.error) throw resCostureiras.error;
+      if (resSessoes.error) throw resSessoes.error;
+      if (resMetaHoje.error) throw resMetaHoje.error;
 
-      // 2. Produção do mês inteiro, pra ranking e total
-      const { data: producaoMes, error: erroProducaoMes } = await supabase
-        .from("producao_diaria")
-        .select("costureira_id, quantidade")
-        .gte("data", inicioDoMes);
+      const costureiras = resCostureiras.data ?? [];
+      const sessoes = resSessoes.data ?? [];
 
-      if (erroProducaoMes) throw erroProducaoMes;
+      // Depende das sessões, por isso vem depois
+      const apontamentos = await listarApontamentos(sessoes.map((s) => s.id));
 
-      // 3. Produção só de hoje
-      const { data: producaoHoje, error: erroProducaoHoje } = await supabase
-        .from("producao_diaria")
-        .select("quantidade")
-        .eq("data", dataHoje);
+      const sessaoPorId = new Map(sessoes.map((s) => [s.id, s]));
 
-      if (erroProducaoHoje) throw erroProducaoHoje;
+      type Acumulado = { pecas: number; padrao: number; gasto: number };
+      const porCostureira = new Map<string, Acumulado>();
+      let pecasProduzidasMes = 0;
+      let pecasHoje = 0;
+      let totalPadrao = 0;
+      let totalGasto = 0;
 
-      // 4. Meta de hoje da equipe
-      const { data: metaHoje, error: erroMetaHoje } = await supabase
-        .from("metas_diarias")
-        .select("meta_pecas")
-        .eq("data", dataHoje)
-        .maybeSingle();
+      for (const ap of apontamentos) {
+        const sessao = sessaoPorId.get(ap.sessao_id);
+        if (!sessao) continue;
 
-      if (erroMetaHoje) throw erroMetaHoje;
+        // minutos que as peças deveriam levar (quantidade x TP)
+        const padrao = ap.quantidade * sessao.tempo_padrao;
 
-      // --- Agora processa tudo em JS ---
+        const atual = porCostureira.get(sessao.costureira_id) ?? {
+          pecas: 0,
+          padrao: 0,
+          gasto: 0,
+        };
+        atual.pecas += ap.quantidade;
+        atual.padrao += padrao;
+        atual.gasto += ap.minutos_gastos;
+        porCostureira.set(sessao.costureira_id, atual);
 
-      // Soma peças por costureira, pra montar o ranking
-      const totalPorCostureira = new Map<string, number>();
-      for (const linha of producaoMes ?? []) {
-        const atual = totalPorCostureira.get(linha.costureira_id) ?? 0;
-        totalPorCostureira.set(linha.costureira_id, atual + linha.quantidade);
+        pecasProduzidasMes += ap.quantidade;
+        totalPadrao += padrao;
+        totalGasto += ap.minutos_gastos;
+        if (sessao.data === dataHoje) pecasHoje += ap.quantidade;
       }
 
-      const ranking: RankingPerson[] = (costureiras ?? [])
+      // Eficiência = minutos padrão / minutos gastos (mesma regra da página da costureira)
+      const ranking: RankingPerson[] = costureiras
         .map((c) => {
-          const pecas = totalPorCostureira.get(c.id) ?? 0;
+          const acc = porCostureira.get(c.id);
           const eficiencia =
-            c.meta_mensal > 0 ? Math.round((pecas / c.meta_mensal) * 100) : 0;
-          return { name: c.nome, pieces: pecas, efficiency: eficiencia };
+            acc && acc.gasto > 0 ? Math.round((acc.padrao / acc.gasto) * 100) : 0;
+          return { name: c.nome, pieces: acc?.pecas ?? 0, efficiency: eficiencia };
         })
         .sort((a, b) => b.pieces - a.pieces)
         .slice(0, 4);
 
-      const pecasProduzidasMes = Array.from(totalPorCostureira.values()).reduce(
-        (soma, valor) => soma + valor,
-        0,
-      );
-
-      const metaTotalMensal = (costureiras ?? []).reduce(
-        (soma, c) => soma + c.meta_mensal,
-        0,
-      );
-
       const eficienciaMedia =
-        metaTotalMensal > 0
-          ? Math.round((pecasProduzidasMes / metaTotalMensal) * 1000) / 10
-          : 0;
+        totalGasto > 0 ? Math.round((totalPadrao / totalGasto) * 1000) / 10 : 0;
 
-      const pecasHoje = (producaoHoje ?? []).reduce(
-        (soma, linha) => soma + linha.quantidade,
-        0,
-      );
-
-      const metaHojeTotal = metaHoje?.meta_pecas ?? 0;
+      const metaHojeTotal = resMetaHoje.data?.meta_pecas ?? 0;
       const metaHojePercentual =
         metaHojeTotal > 0 ? Math.round((pecasHoje / metaHojeTotal) * 100) : 0;
 
       setData({
-        costureirasAtivas: costureiras?.length ?? 0,
+        costureirasAtivas: costureiras.length,
         pecasProduzidasMes,
         eficienciaMedia,
         ranking,
@@ -186,7 +183,7 @@ function Dashboard() {
           icon={<Activity className="size-5" />}
           label="Eficiência média"
           value={`${data.eficienciaMedia.toLocaleString("pt-BR")}%`}
-          description="Produzido em relação à meta"
+          description="Tempo padrão em relação ao tempo gasto"
         />
       </section>
 
