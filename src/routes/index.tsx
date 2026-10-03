@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, ArrowUpRight, CheckCircle2, Package, Users,} from "lucide-react";
+import { Activity, Package, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { hojeISO, listarApontamentos } from "@/lib/production";
@@ -22,9 +22,6 @@ type DashboardData = {
   pecasProduzidasMes: number;
   eficienciaMedia: number;
   ranking: RankingPerson[];
-  metaHojePercentual: number;
-  pecasHoje: number;
-  metaHojeTotal: number;
 };
 
 function Dashboard() {
@@ -45,23 +42,17 @@ function Dashboard() {
       const dataHoje = hojeISO();
       const inicioDoMes = `${dataHoje.slice(0, 8)}01`;
 
-      // As três consultas independentes rodam ao mesmo tempo
-      const [resCostureiras, resSessoes, resMetaHoje] = await Promise.all([
+      // As duas consultas independentes rodam ao mesmo tempo
+      const [resCostureiras, resSessoes] = await Promise.all([
         supabase.from("costureiras").select("id, nome").eq("ativa", true),
         supabase
           .from("sessoes_producao")
           .select("id, costureira_id, data, tempo_padrao")
           .gte("data", inicioDoMes),
-        supabase
-          .from("metas_diarias")
-          .select("meta_pecas")
-          .eq("data", dataHoje)
-          .maybeSingle(),
       ]);
 
       if (resCostureiras.error) throw resCostureiras.error;
       if (resSessoes.error) throw resSessoes.error;
-      if (resMetaHoje.error) throw resMetaHoje.error;
 
       const costureiras = resCostureiras.data ?? [];
       const sessoes = resSessoes.data ?? [];
@@ -74,7 +65,6 @@ function Dashboard() {
       type Acumulado = { pecas: number; padrao: number; gasto: number };
       const porCostureira = new Map<string, Acumulado>();
       let pecasProduzidasMes = 0;
-      let pecasHoje = 0;
       let totalPadrao = 0;
       let totalGasto = 0;
 
@@ -98,7 +88,6 @@ function Dashboard() {
         pecasProduzidasMes += ap.quantidade;
         totalPadrao += padrao;
         totalGasto += ap.minutos_gastos;
-        if (sessao.data === dataHoje) pecasHoje += ap.quantidade;
       }
 
       // Eficiência = minutos padrão / minutos gastos (mesma regra da página da costureira)
@@ -115,18 +104,11 @@ function Dashboard() {
       const eficienciaMedia =
         totalGasto > 0 ? Math.round((totalPadrao / totalGasto) * 1000) / 10 : 0;
 
-      const metaHojeTotal = resMetaHoje.data?.meta_pecas ?? 0;
-      const metaHojePercentual =
-        metaHojeTotal > 0 ? Math.round((pecasHoje / metaHojeTotal) * 100) : 0;
-
       setData({
         costureirasAtivas: costureiras.length,
         pecasProduzidasMes,
         eficienciaMedia,
         ranking,
-        metaHojePercentual,
-        pecasHoje,
-        metaHojeTotal,
       });
     } catch (e) {
       console.error(e);
@@ -187,8 +169,8 @@ function Dashboard() {
         />
       </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+      <section className="mt-6">
+        <Card>
           <CardHeader>
             <CardTitle>Ranking de desempenho</CardTitle>
             <CardDescription>
@@ -228,40 +210,6 @@ function Dashboard() {
                 <Progress value={Math.min(person.efficiency, 100)} />
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Resumo de hoje</CardTitle>
-            <CardDescription>Atualizado agora</CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-5">
-            <div className="rounded-xl bg-[var(--chip-bg)] p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-white">
-                  Meta do dia
-                </p>
-                <CheckCircle2 className="size-5 text-[var(--lagoon-deep)]" />
-              </div>
-              <p className="mt-2 text-3xl font-bold text-white">
-                {data.metaHojePercentual}%
-              </p>
-              <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-                {data.pecasHoje} de {data.metaHojeTotal} peças
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between border-t pt-4">
-              <div>
-                <p className="font-semibold">Ver costureiras</p>
-                <p className="text-sm text-[var(--sea-ink-soft)]">
-                  Gerencie a equipe e a produção.
-                </p>
-              </div>
-              <ArrowUpRight className="size-5 text-[var(--sea-ink-soft)]" />
-            </div>
           </CardContent>
         </Card>
       </section>
