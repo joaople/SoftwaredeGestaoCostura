@@ -1,4 +1,3 @@
-
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -15,58 +14,73 @@
 }
 
 :root {
-  color-scheme: dark;
-  --sea-ink: #ffffff;
-  --sea-ink-soft: #c7cbd1;
-  --lagoon: #67c7de;
-  --lagoon-deep: #78d5e8;
-  --palm: #83d6a0;
-  --sand: #000000;
-  --foam: #111111;
-  --surface: rgba(20, 20, 20, 0.92);
-  --surface-strong: #151515;
-  --line: rgba(255, 255, 255, 0.14);
-  --inset-glint: rgba(255, 255, 255, 0.08);
-  --kicker: #78d5e8;
-  --bg-base: #000000;
-  --header-bg: rgba(0, 0, 0, 0.94);
-  --chip-bg: #191919;
-  --chip-line: rgba(255, 255, 255, 0.18);
-  --link-bg-hover: #252525;
-  --hero-a: rgba(103, 199, 222, 0.16);
-  --hero-b: rgba(68, 122, 180, 0.1);
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #111111;
-  --card-foreground: #ffffff;
-  --popover: #151515;
-  --popover-foreground: #ffffff;
-  --primary: #2f8fb3;
+  color-scheme: light;
+
+  /* Tema claro (padrão). O escuro fica no bloco .dark, mais abaixo. */
+  --sea-ink: #0c1a4d;
+  --sea-ink-soft: #4b5b82;
+  --lagoon: #3aa9e0;
+  --lagoon-deep: #1d68b3;
+  --palm: #2f9e6a;
+  --sand: #f3f7fc;
+  --foam: #ffffff;
+  --surface: rgba(255, 255, 255, 0.96);
+  --surface-strong: #ffffff;
+  --line: rgba(12, 26, 77, 0.12);
+  --inset-glint: rgba(255, 255, 255, 0.8);
+  --kicker: #1d68b3;
+  --bg-base: #f3f7fc;
+  --header-bg: rgba(255, 255, 255, 0.96);
+  --chip-bg: #e8f0fa;
+  --chip-line: rgba(12, 26, 77, 0.16);
+  --link-bg-hover: #dce9f8;
+  --hero-a: rgba(58, 169, 224, 0.16);
+  --hero-b: rgba(245, 196, 49, 0.1);
+  --danger-text: #b42323;
+  --link-hover: #1d68b3;
+
+  --background: #f3f7fc;
+  --foreground: #0c1a4d;
+  --card: #ffffff;
+  --card-foreground: #0c1a4d;
+  --popover: #ffffff;
+  --popover-foreground: #0c1a4d;
+  --primary: #1d68b3;
   --primary-foreground: #ffffff;
-  --secondary: #242424;
-  --secondary-foreground: #ffffff;
-  --muted: #202020;
-  --muted-foreground: #c7cbd1;
-  --accent: #242424;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --border: #383838;
-  --input: #171717;
-  --ring: #78d5e8;
-  --chart-1: #78d5e8;
-  --chart-2: #60a5fa;
-  --chart-3: #38bdf8;
-  --chart-4: #83d6a0;
-  --chart-5: #10b981;
+  --secondary: #e4eefa;
+  --secondary-foreground: #0c1a4d;
+  --muted: #e8f0fa;
+  --muted-foreground: #4b5b82;
+  --accent: #dbeafa;
+  --accent-foreground: #0c1a4d;
+  --destructive: #d93a3a;
+  --border: #d6e2f1;
+  --input: #c3d3e8;
+  --ring: #3aa9e0;
+  --chart-1: #1d68b3;
+  --chart-2: #3aa9e0;
+  --chart-3: #f2b82e;
+  --chart-4: #2f9e6a;
+  --chart-5: #e0453f;
   --radius: 0.625rem;
-  --sidebar: #0f1b3d;
+
+  /* Identidade visual: para usar o sistema em outra confecção, ajuste aqui
+     estas cores e as do menu lateral logo abaixo. */
+  --brand-accent: #f97316;
+  --brand-accent-ink: #ffffff;
+  --brand-subtitle: #fb923c;
+
+  /* O menu lateral mantém a cor de fundo escura nos dois temas */
+  --sidebar-link: #e2e8f0;
+  --sidebar-link-hover: #ffffff;
+  --sidebar: #0c1a4d;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #78d5e8;
-  --sidebar-primary-foreground: #0f1b3d;
-  --sidebar-accent: #1c2a4b;
+  --sidebar-primary: #5ec1f2;
+  --sidebar-primary-foreground: #0c1a4d;
+  --sidebar-accent: #1a2a66;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.12);
-  --sidebar-ring: #78d5e8;
+  --sidebar-ring: #5ec1f2;
 }
 
 * {
@@ -81,23 +95,32 @@ body,
 
 body {
   margin: 0;
-  color: #ffffff;
+  color: var(--foreground);
   font-family: var(--font-sans);
-  background: #000000;
+  background: var(--bg-base);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 a {
-  color: #ffffff;
-  text-decoration-color: rgba(120, 213, 232, 0.65);
+  color: var(--foreground);
+  text-decoration-color: color-mix(in oklab, var(--lagoon) 65%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
 
 a:hover {
-  color: #a1e8f3;
+  color: var(--link-hover);
+}
+
+/* Menu lateral: fundo sempre escuro, então os links são sempre claros */
+aside a {
+  color: var(--sidebar-link);
+}
+
+aside a:hover {
+  color: var(--sidebar-link-hover);
 }
 
 code {
@@ -278,7 +301,7 @@ pre code {
 .demo-button-danger {
   border-color: rgba(196, 71, 71, 0.28);
   background: rgba(196, 71, 71, 0.1);
-  color: #9f3030;
+  color: var(--danger-text);
 }
 
 .demo-list-item {
@@ -468,37 +491,53 @@ a {
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+
+  --sea-ink: #ffffff;
+  --sea-ink-soft: #c7cbd1;
+  --lagoon: #67c7de;
+  --lagoon-deep: #78d5e8;
+  --palm: #83d6a0;
+  --sand: #000000;
+  --foam: #111111;
+  --surface: rgba(20, 20, 20, 0.92);
+  --surface-strong: #151515;
+  --line: rgba(255, 255, 255, 0.14);
+  --inset-glint: rgba(255, 255, 255, 0.08);
+  --kicker: #78d5e8;
+  --bg-base: #000000;
+  --header-bg: rgba(0, 0, 0, 0.94);
+  --chip-bg: #191919;
+  --chip-line: rgba(255, 255, 255, 0.18);
+  --link-bg-hover: #252525;
+  --hero-a: rgba(103, 199, 222, 0.16);
+  --hero-b: rgba(68, 122, 180, 0.1);
+  --danger-text: #f87171;
+  --link-hover: #a1e8f3;
+
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #111111;
+  --card-foreground: #ffffff;
+  --popover: #151515;
+  --popover-foreground: #ffffff;
+  --primary: #2f8fb3;
+  --primary-foreground: #ffffff;
+  --secondary: #242424;
+  --secondary-foreground: #ffffff;
+  --muted: #202020;
+  --muted-foreground: #c7cbd1;
+  --accent: #242424;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: #383838;
+  --input: #171717;
+  --ring: #78d5e8;
+  --chart-1: #78d5e8;
+  --chart-2: #60a5fa;
+  --chart-3: #38bdf8;
+  --chart-4: #83d6a0;
+  --chart-5: #10b981;
 }
 
 @layer base {
