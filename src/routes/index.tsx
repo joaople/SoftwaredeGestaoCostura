@@ -189,7 +189,7 @@ function Dashboard() {
     <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
       <header className="mb-8">
         <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[var(--lagoon-deep)]">
-          CosturaFlow
+          Confectime
         </p>
         <h1 className="text-3xl font-bold tracking-tight">
           Painel das costureiras
