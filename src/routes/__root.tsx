@@ -10,13 +10,20 @@ export const Route = createRootRoute({
       { title: "CosturaFlow" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
+    // Aplica o tema salvo antes da página aparecer, para não piscar
+    scripts: [
+      {
+        children:
+          "(function(){try{var m=localStorage.getItem('theme')||'light';var d=m==='dark'||(m==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.remove('light','dark');e.classList.add(d?'dark':'light');e.style.colorScheme=d?'dark':'light';}catch(_){}})();",
+      },
+    ],
   }),
   shellComponent: RootDocument,
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

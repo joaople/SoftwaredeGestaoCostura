@@ -2,7 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Activity, Package, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { hojeISO, listarApontamentos } from "@/lib/production";
+import { hojeISO, listarApontamentos, listarSessoes } from "@/lib/production";
+import {
+  CurvaProducao,
+  montarPontosRecentes,
+  type PontoCurva,
+} from "@/components/CurvaProducao";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +18,7 @@ export const Route = createFileRoute("/")({
 });
 
 type RankingPerson = {
+  id: string;
   name: string;
   pieces: number;
   efficiency: number;
@@ -22,6 +29,7 @@ type DashboardData = {
   pecasProduzidasMes: number;
   eficienciaMedia: number;
   ranking: RankingPerson[];
+  costureiras: { id: string; nome: string }[];
 };
 
 function Dashboard() {
@@ -29,9 +37,44 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
+  // Curva de produção: costureira escolhida nas abas e pontos do gráfico
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  const [curva, setCurva] = useState<PontoCurva[]>([]);
+  const [curvaCarregando, setCurvaCarregando] = useState(false);
+
+  // Sem escolha do usuário, mostra a primeira do ranking
+  const curvaId =
+    selecionadaId ?? data?.ranking[0]?.id ?? data?.costureiras[0]?.id ?? null;
+  const costureiraDaCurva = data?.costureiras.find((c) => c.id === curvaId);
+
   useEffect(() => {
     carregarDados();
   }, []);
+
+  useEffect(() => {
+    if (!curvaId) return;
+    let cancelado = false;
+
+    async function carregarCurva(id: string) {
+      setCurvaCarregando(true);
+      try {
+        // Só as sessões mais recentes: evita pedir milhares de ids de uma vez
+        const sessoes = (await listarSessoes(id)).slice(0, 30);
+        const apontamentos = await listarApontamentos(sessoes.map((s) => s.id));
+        if (!cancelado) setCurva(montarPontosRecentes(sessoes, apontamentos, 24));
+      } catch (e) {
+        console.error(e);
+        if (!cancelado) setCurva([]);
+      } finally {
+        if (!cancelado) setCurvaCarregando(false);
+      }
+    }
+
+    carregarCurva(curvaId);
+    return () => {
+      cancelado = true;
+    };
+  }, [curvaId]);
 
   async function carregarDados() {
     setLoading(true);
@@ -96,7 +139,12 @@ function Dashboard() {
           const acc = porCostureira.get(c.id);
           const eficiencia =
             acc && acc.gasto > 0 ? Math.round((acc.padrao / acc.gasto) * 100) : 0;
-          return { name: c.nome, pieces: acc?.pecas ?? 0, efficiency: eficiencia };
+          return {
+            id: c.id as string,
+            name: c.nome as string,
+            pieces: acc?.pecas ?? 0,
+            efficiency: eficiencia,
+          };
         })
         .sort((a, b) => b.pieces - a.pieces)
         .slice(0, 4);
@@ -109,6 +157,9 @@ function Dashboard() {
         pecasProduzidasMes,
         eficienciaMedia,
         ranking,
+        costureiras: costureiras
+          .map((c) => ({ id: c.id as string, nome: c.nome as string }))
+          .sort((a, b) => a.nome.localeCompare(b.nome)),
       });
     } catch (e) {
       console.error(e);
@@ -213,6 +264,46 @@ function Dashboard() {
           </CardContent>
         </Card>
       </section>
+
+      {data.costureiras.length > 0 && (
+        <section className="mt-6">
+          <Card>
+            <CardHeader className="gap-3">
+              <CardTitle>
+                Curva de produção
+                {costureiraDaCurva ? ` — ${costureiraDaCurva.nome}` : ""}
+              </CardTitle>
+              <CardDescription>
+                Eficiência de cada apontamento (últimos 24).
+              </CardDescription>
+              <div className="flex flex-wrap gap-2">
+                {data.costureiras.map((c) => (
+                  <Button
+                    key={c.id}
+                    size="sm"
+                    variant={c.id === curvaId ? "default" : "outline"}
+                    onClick={() => setSelecionadaId(c.id)}
+                  >
+                    {c.nome}
+                  </Button>
+                ))}
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              {curvaCarregando ? (
+                <div className="h-64 animate-pulse rounded-md bg-[var(--muted)]" />
+              ) : curva.length === 0 ? (
+                <p className="text-sm text-[var(--sea-ink-soft)]">
+                  Sem apontamentos para essa costureira ainda.
+                </p>
+              ) : (
+                <CurvaProducao titulo="" pontos={curva} />
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
     </main>
   );
 }
