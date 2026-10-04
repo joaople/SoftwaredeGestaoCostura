@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, ArrowUpRight, CheckCircle2, Package, Users,} from "lucide-react";
+import { Activity, Package, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { hojeISO, listarApontamentos } from "@/lib/production";
+import { hojeISO, listarApontamentos, listarSessoes } from "@/lib/production";
+import {
+  CurvaProducao,
+  montarPontosRecentes,
+  type PontoCurva,
+} from "@/components/CurvaProducao";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +18,7 @@ export const Route = createFileRoute("/")({
 });
 
 type RankingPerson = {
+  id: string;
   name: string;
   pieces: number;
   efficiency: number;
@@ -22,9 +29,7 @@ type DashboardData = {
   pecasProduzidasMes: number;
   eficienciaMedia: number;
   ranking: RankingPerson[];
-  metaHojePercentual: number;
-  pecasHoje: number;
-  metaHojeTotal: number;
+  costureiras: { id: string; nome: string }[];
 };
 
 function Dashboard() {
@@ -32,9 +37,44 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
+  // Curva de produção: costureira escolhida nas abas e pontos do gráfico
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  const [curva, setCurva] = useState<PontoCurva[]>([]);
+  const [curvaCarregando, setCurvaCarregando] = useState(false);
+
+  // Sem escolha do usuário, mostra a primeira do ranking
+  const curvaId =
+    selecionadaId ?? data?.ranking[0]?.id ?? data?.costureiras[0]?.id ?? null;
+  const costureiraDaCurva = data?.costureiras.find((c) => c.id === curvaId);
+
   useEffect(() => {
     carregarDados();
   }, []);
+
+  useEffect(() => {
+    if (!curvaId) return;
+    let cancelado = false;
+
+    async function carregarCurva(id: string) {
+      setCurvaCarregando(true);
+      try {
+        // Só as sessões mais recentes: evita pedir milhares de ids de uma vez
+        const sessoes = (await listarSessoes(id)).slice(0, 30);
+        const apontamentos = await listarApontamentos(sessoes.map((s) => s.id));
+        if (!cancelado) setCurva(montarPontosRecentes(sessoes, apontamentos, 24));
+      } catch (e) {
+        console.error(e);
+        if (!cancelado) setCurva([]);
+      } finally {
+        if (!cancelado) setCurvaCarregando(false);
+      }
+    }
+
+    carregarCurva(curvaId);
+    return () => {
+      cancelado = true;
+    };
+  }, [curvaId]);
 
   async function carregarDados() {
     setLoading(true);
@@ -45,23 +85,17 @@ function Dashboard() {
       const dataHoje = hojeISO();
       const inicioDoMes = `${dataHoje.slice(0, 8)}01`;
 
-      // As três consultas independentes rodam ao mesmo tempo
-      const [resCostureiras, resSessoes, resMetaHoje] = await Promise.all([
+      // As duas consultas independentes rodam ao mesmo tempo
+      const [resCostureiras, resSessoes] = await Promise.all([
         supabase.from("costureiras").select("id, nome").eq("ativa", true),
         supabase
           .from("sessoes_producao")
           .select("id, costureira_id, data, tempo_padrao")
           .gte("data", inicioDoMes),
-        supabase
-          .from("metas_diarias")
-          .select("meta_pecas")
-          .eq("data", dataHoje)
-          .maybeSingle(),
       ]);
 
       if (resCostureiras.error) throw resCostureiras.error;
       if (resSessoes.error) throw resSessoes.error;
-      if (resMetaHoje.error) throw resMetaHoje.error;
 
       const costureiras = resCostureiras.data ?? [];
       const sessoes = resSessoes.data ?? [];
@@ -74,7 +108,6 @@ function Dashboard() {
       type Acumulado = { pecas: number; padrao: number; gasto: number };
       const porCostureira = new Map<string, Acumulado>();
       let pecasProduzidasMes = 0;
-      let pecasHoje = 0;
       let totalPadrao = 0;
       let totalGasto = 0;
 
@@ -98,7 +131,6 @@ function Dashboard() {
         pecasProduzidasMes += ap.quantidade;
         totalPadrao += padrao;
         totalGasto += ap.minutos_gastos;
-        if (sessao.data === dataHoje) pecasHoje += ap.quantidade;
       }
 
       // Eficiência = minutos padrão / minutos gastos (mesma regra da página da costureira)
@@ -107,7 +139,12 @@ function Dashboard() {
           const acc = porCostureira.get(c.id);
           const eficiencia =
             acc && acc.gasto > 0 ? Math.round((acc.padrao / acc.gasto) * 100) : 0;
-          return { name: c.nome, pieces: acc?.pecas ?? 0, efficiency: eficiencia };
+          return {
+            id: c.id as string,
+            name: c.nome as string,
+            pieces: acc?.pecas ?? 0,
+            efficiency: eficiencia,
+          };
         })
         .sort((a, b) => b.pieces - a.pieces)
         .slice(0, 4);
@@ -115,18 +152,14 @@ function Dashboard() {
       const eficienciaMedia =
         totalGasto > 0 ? Math.round((totalPadrao / totalGasto) * 1000) / 10 : 0;
 
-      const metaHojeTotal = resMetaHoje.data?.meta_pecas ?? 0;
-      const metaHojePercentual =
-        metaHojeTotal > 0 ? Math.round((pecasHoje / metaHojeTotal) * 100) : 0;
-
       setData({
         costureirasAtivas: costureiras.length,
         pecasProduzidasMes,
         eficienciaMedia,
         ranking,
-        metaHojePercentual,
-        pecasHoje,
-        metaHojeTotal,
+        costureiras: costureiras
+          .map((c) => ({ id: c.id as string, nome: c.nome as string }))
+          .sort((a, b) => a.nome.localeCompare(b.nome)),
       });
     } catch (e) {
       console.error(e);
@@ -187,8 +220,8 @@ function Dashboard() {
         />
       </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+      <section className="mt-6">
+        <Card>
           <CardHeader>
             <CardTitle>Ranking de desempenho</CardTitle>
             <CardDescription>
@@ -230,41 +263,47 @@ function Dashboard() {
             ))}
           </CardContent>
         </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Resumo de hoje</CardTitle>
-            <CardDescription>Atualizado agora</CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-5">
-            <div className="rounded-xl bg-[var(--chip-bg)] p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-white">
-                  Meta do dia
-                </p>
-                <CheckCircle2 className="size-5 text-[var(--lagoon-deep)]" />
-              </div>
-              <p className="mt-2 text-3xl font-bold text-white">
-                {data.metaHojePercentual}%
-              </p>
-              <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-                {data.pecasHoje} de {data.metaHojeTotal} peças
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between border-t pt-4">
-              <div>
-                <p className="font-semibold">Ver costureiras</p>
-                <p className="text-sm text-[var(--sea-ink-soft)]">
-                  Gerencie a equipe e a produção.
-                </p>
-              </div>
-              <ArrowUpRight className="size-5 text-[var(--sea-ink-soft)]" />
-            </div>
-          </CardContent>
-        </Card>
       </section>
+
+      {data.costureiras.length > 0 && (
+        <section className="mt-6">
+          <Card>
+            <CardHeader className="gap-3">
+              <CardTitle>
+                Curva de produção
+                {costureiraDaCurva ? ` — ${costureiraDaCurva.nome}` : ""}
+              </CardTitle>
+              <CardDescription>
+                Eficiência de cada apontamento (últimos 24).
+              </CardDescription>
+              <div className="flex flex-wrap gap-2">
+                {data.costureiras.map((c) => (
+                  <Button
+                    key={c.id}
+                    size="sm"
+                    variant={c.id === curvaId ? "default" : "outline"}
+                    onClick={() => setSelecionadaId(c.id)}
+                  >
+                    {c.nome}
+                  </Button>
+                ))}
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              {curvaCarregando ? (
+                <div className="h-64 animate-pulse rounded-md bg-[var(--muted)]" />
+              ) : curva.length === 0 ? (
+                <p className="text-sm text-[var(--sea-ink-soft)]">
+                  Sem apontamentos para essa costureira ainda.
+                </p>
+              ) : (
+                <CurvaProducao titulo="" pontos={curva} />
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
     </main>
   );
 }
