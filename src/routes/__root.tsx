@@ -7,7 +7,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CosturaFlow" },
+      { title: "Confectime" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
     // Aplica o tema salvo antes da página aparecer, para não piscar

@@ -35,7 +35,7 @@ export function Sidebar() {
         </div>
         <div>
           <p className="text-sm font-semibold leading-tight text-white">
-            Confec time
+            Confectime
           </p>
           <p className="text-xs leading-tight text-[var(--brand-subtitle)]">
             Gestão de produção

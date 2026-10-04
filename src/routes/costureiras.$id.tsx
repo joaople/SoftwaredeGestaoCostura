@@ -241,12 +241,10 @@ function PerfilCostureira() {
 
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-tight">
+          <h1 className="text-4xl font-bold uppercase tracking-tight">
             {costureira?.nome}
           </h1>
-          <p className="text-sm text-[var(--sea-ink-soft)]">
-            {costureira?.funcao} · {costureira?.turno}
-          </p>
+          
         </div>
 
         <div className="flex gap-6 text-right">

@@ -137,7 +137,7 @@ function ListaCostureiras() {
       <header className="mb-8 flex items-center justify-between">
         <div>
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[var(--lagoon-deep)]">
-            CosturaFlow
+            Confectime
           </p>
           <h1 className="text-3xl font-bold tracking-tight">Costureiras</h1>
           <p className="mt-2 text-[var(--sea-ink-soft)]">
