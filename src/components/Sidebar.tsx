@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Scissors, LayoutGrid, Users, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { COSTUREIRAS_ATUALIZADAS } from "@/lib/api";
 import ThemeToggle from "./ThemeToggle";
 
 type Costureira = {
@@ -14,16 +15,20 @@ export function Sidebar() {
   const location = useLocation();
 
   useEffect(() => {
-    async function carregar() {
-      const { data, error } = await supabase
-        .from("costureiras")
-        .select("id, nome")
-        .eq("ativa", true);
+  async function carregar() {
+    const { data, error } = await supabase
+      .from("costureiras")
+      .select("id, nome")
+      .eq("ativa", true)
+      .order("nome");
 
-      if (!error && data) setCostureiras(data);
-    }
-    carregar();
-  }, []);
+    if (!error && data) setCostureiras(data);
+  }
+
+  carregar();
+  window.addEventListener(COSTUREIRAS_ATUALIZADAS, carregar);
+  return () => window.removeEventListener(COSTUREIRAS_ATUALIZADAS, carregar);
+}, []);
 
   const isActive = (path: string) => location.pathname === path;
 
