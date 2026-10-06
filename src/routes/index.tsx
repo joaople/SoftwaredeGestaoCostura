@@ -225,7 +225,7 @@ function Dashboard() {
           <CardHeader>
             <CardTitle>Ranking de desempenho</CardTitle>
             <CardDescription>
-              Produção acumulada da equipe neste mês.
+              Produção acumulada da equipe.
             </CardDescription>
           </CardHeader>
 
@@ -274,7 +274,7 @@ function Dashboard() {
                 {costureiraDaCurva ? ` — ${costureiraDaCurva.nome}` : ""}
               </CardTitle>
               <CardDescription>
-                Eficiência de cada apontamento (últimos 24).
+                Eficiência de cada apontamento.
               </CardDescription>
               <div className="flex flex-wrap gap-2">
                 {data.costureiras.map((c) => (
