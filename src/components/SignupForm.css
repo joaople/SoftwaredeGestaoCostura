@@ -1,0 +1,235 @@
+.signup {
+  --su-bg: #f5f7fc;
+  --su-primary: #214a94;
+  --su-text: #0f1a2e;
+  --su-muted: #5f6b80;
+  --su-border: #d9dfeb;
+  --su-input-bg: #f6f8fd;
+  --su-error: #c0392b;
+
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px;
+  background: var(--su-bg);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--su-text);
+  box-sizing: border-box;
+}
+
+.signup *,
+.signup *::before,
+.signup *::after {
+  box-sizing: border-box;
+}
+
+.signup__container {
+  width: 100%;
+  max-width: 500px;
+}
+
+.signup__eyebrow {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--su-primary);
+}
+
+.signup__title {
+  margin: 20px 0 0;
+  font-size: 40px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: var(--su-text);
+}
+
+.signup__subtitle {
+  margin: 20px 0 0;
+  font-size: 16px;
+  color: var(--su-muted);
+}
+
+/* Abas */
+.signup__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 40px;
+  border-bottom: 1px solid var(--su-border);
+}
+
+.signup__tab {
+  height: 56px;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--su-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.signup__tab:hover {
+  color: var(--su-primary);
+}
+
+.signup__tab--active {
+  color: var(--su-primary);
+  border: 1px solid var(--su-primary);
+  border-bottom-width: 3px;
+  margin-bottom: -1px;
+  background: #fff;
+  cursor: default;
+}
+
+/* Campos */
+.signup__form {
+  margin-top: 40px;
+}
+
+.signup__field + .signup__field {
+  margin-top: 28px;
+}
+
+.signup__field label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--su-text);
+}
+
+.signup__input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 60px;
+  background: var(--su-input-bg);
+  border: 1px solid var(--su-border);
+  border-radius: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.signup__input:focus-within {
+  border-color: var(--su-primary);
+  box-shadow: 0 0 0 3px rgba(33, 74, 148, 0.15);
+}
+
+.signup__icon {
+  display: flex;
+  padding: 0 14px 0 18px;
+  color: var(--su-muted);
+}
+
+.signup__input input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 16px 0 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-size: 17px;
+  color: var(--su-text);
+}
+
+.signup__input input::placeholder {
+  color: var(--su-muted);
+  opacity: 0.85;
+}
+
+.signup__toggle {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 18px;
+  background: transparent;
+  border: 0;
+  color: var(--su-muted);
+  cursor: pointer;
+}
+
+.signup__toggle:hover {
+  color: var(--su-primary);
+}
+
+.signup__error {
+  margin: 16px 0 0;
+  font-size: 14px;
+  color: var(--su-error);
+}
+
+/* Botão */
+.signup__submit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 60px;
+  margin-top: 28px;
+  background: var(--su-primary);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(33, 74, 148, 0.25);
+  transition: filter 0.15s, transform 0.05s;
+}
+
+.signup__submit:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.signup__submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.signup__submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Rodapé */
+.signup__login,
+.signup__note {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--su-muted);
+}
+
+.signup__login {
+  margin-top: 28px;
+}
+
+.signup__note {
+  margin-top: 24px;
+}
+
+.signup__link {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--su-primary);
+  cursor: pointer;
+}
+
+.signup__link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .signup__title {
+    font-size: 32px;
+  }
+}
