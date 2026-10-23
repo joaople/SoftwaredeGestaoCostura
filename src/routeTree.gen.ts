@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CostureirasIndexRouteImport } from './routes/costureiras.index'
 import { Route as CostureirasIdRouteImport } from './routes/costureiras.$id'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroRoute = CadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -44,6 +50,7 @@ const CostureirasIdRoute = CostureirasIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras/': typeof CostureirasIndexRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras': typeof CostureirasIndexRoute
@@ -59,19 +67,33 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras/': typeof CostureirasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/login' | '/costureiras/$id' | '/costureiras/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/cadastro'
+    | '/login'
+    | '/costureiras/$id'
+    | '/costureiras/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/login' | '/costureiras/$id' | '/costureiras'
+  to:
+    | '/'
+    | '/about'
+    | '/cadastro'
+    | '/login'
+    | '/costureiras/$id'
+    | '/costureiras'
   id:
     | '__root__'
     | '/'
     | '/about'
+    | '/cadastro'
     | '/login'
     | '/costureiras/$id'
     | '/costureiras/'
@@ -80,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  CadastroRoute: typeof CadastroRoute
   LoginRoute: typeof LoginRoute
   CostureirasIdRoute: typeof CostureirasIdRoute
   CostureirasIndexRoute: typeof CostureirasIndexRoute
@@ -99,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro': {
+      id: '/cadastro'
+      path: '/cadastro'
+      fullPath: '/cadastro'
+      preLoaderRoute: typeof CadastroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -128,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  CadastroRoute: CadastroRoute,
   LoginRoute: LoginRoute,
   CostureirasIdRoute: CostureirasIdRoute,
   CostureirasIndexRoute: CostureirasIndexRoute,
