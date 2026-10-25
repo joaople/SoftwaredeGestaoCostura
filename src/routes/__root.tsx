@@ -12,9 +12,16 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CosturaFlow" },
+      { title: "Confectime" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
+    // Aplica o tema salvo antes da página aparecer, para não piscar
+    scripts: [
+      {
+        children:
+          "(function(){try{var m=localStorage.getItem('theme')||'light';var d=m==='dark'||(m==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.remove('light','dark');e.classList.add(d?'dark':'light');e.style.colorScheme=d?'dark':'light';}catch(_){}})();",
+      },
+    ],
   }),
   shellComponent: RootDocument,
 });
@@ -26,7 +33,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const isPublic = PUBLIC_ROUTES.includes(pathname);
 
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

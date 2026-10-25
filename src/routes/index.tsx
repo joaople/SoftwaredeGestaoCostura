@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, ArrowUpRight, CheckCircle2, Package, Users,} from "lucide-react";
+import { Activity, Package, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { hojeISO, listarApontamentos, listarSessoes } from "@/lib/production";
+import {
+  CurvaProducao,
+  montarPontosRecentes,
+  type PontoCurva,
+} from "@/components/CurvaProducao";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -11,6 +18,7 @@ export const Route = createFileRoute("/")({
 });
 
 type RankingPerson = {
+  id: string;
   name: string;
   pieces: number;
   efficiency: number;
@@ -21,9 +29,7 @@ type DashboardData = {
   pecasProduzidasMes: number;
   eficienciaMedia: number;
   ranking: RankingPerson[];
-  metaHojePercentual: number;
-  pecasHoje: number;
-  metaHojeTotal: number;
+  costureiras: { id: string; nome: string }[];
 };
 
 function Dashboard() {
@@ -31,105 +37,129 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
+  // Curva de produção: costureira escolhida nas abas e pontos do gráfico
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  const [curva, setCurva] = useState<PontoCurva[]>([]);
+  const [curvaCarregando, setCurvaCarregando] = useState(false);
+
+  // Sem escolha do usuário, mostra a primeira do ranking
+  const curvaId =
+    selecionadaId ?? data?.ranking[0]?.id ?? data?.costureiras[0]?.id ?? null;
+  const costureiraDaCurva = data?.costureiras.find((c) => c.id === curvaId);
+
   useEffect(() => {
     carregarDados();
   }, []);
+
+  useEffect(() => {
+    if (!curvaId) return;
+    let cancelado = false;
+
+    async function carregarCurva(id: string) {
+      setCurvaCarregando(true);
+      try {
+        // Só as sessões mais recentes: evita pedir milhares de ids de uma vez
+        const sessoes = (await listarSessoes(id)).slice(0, 30);
+        const apontamentos = await listarApontamentos(sessoes.map((s) => s.id));
+        if (!cancelado) setCurva(montarPontosRecentes(sessoes, apontamentos, 24));
+      } catch (e) {
+        console.error(e);
+        if (!cancelado) setCurva([]);
+      } finally {
+        if (!cancelado) setCurvaCarregando(false);
+      }
+    }
+
+    carregarCurva(curvaId);
+    return () => {
+      cancelado = true;
+    };
+  }, [curvaId]);
 
   async function carregarDados() {
     setLoading(true);
     setErro(null);
 
     try {
-      const hoje = new Date();
-      const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10);
-      const dataHoje = hoje.toISOString().slice(0, 10);
+      // Data local (não UTC), no formato YYYY-MM-DD
+      const dataHoje = hojeISO();
+      const inicioDoMes = `${dataHoje.slice(0, 8)}01`;
 
-      // 1. Costureiras ativas + suas metas
-      const { data: costureiras, error: erroCostureiras } = await supabase
-        .from("costureiras")
-        .select("id, nome, meta_mensal")
-        .eq("ativa", true);
+      // As duas consultas independentes rodam ao mesmo tempo
+      const [resCostureiras, resSessoes] = await Promise.all([
+        supabase.from("costureiras").select("id, nome").eq("ativa", true),
+        supabase
+          .from("sessoes_producao")
+          .select("id, costureira_id, data, tempo_padrao")
+          .gte("data", inicioDoMes),
+      ]);
 
-      if (erroCostureiras) throw erroCostureiras;
+      if (resCostureiras.error) throw resCostureiras.error;
+      if (resSessoes.error) throw resSessoes.error;
 
-      // 2. Produção do mês inteiro, pra ranking e total
-      const { data: producaoMes, error: erroProducaoMes } = await supabase
-        .from("producao_diaria")
-        .select("costureira_id, quantidade")
-        .gte("data", inicioDoMes);
+      const costureiras = resCostureiras.data ?? [];
+      const sessoes = resSessoes.data ?? [];
 
-      if (erroProducaoMes) throw erroProducaoMes;
+      // Depende das sessões, por isso vem depois
+      const apontamentos = await listarApontamentos(sessoes.map((s) => s.id));
 
-      // 3. Produção só de hoje
-      const { data: producaoHoje, error: erroProducaoHoje } = await supabase
-        .from("producao_diaria")
-        .select("quantidade")
-        .eq("data", dataHoje);
+      const sessaoPorId = new Map(sessoes.map((s) => [s.id, s]));
 
-      if (erroProducaoHoje) throw erroProducaoHoje;
+      type Acumulado = { pecas: number; padrao: number; gasto: number };
+      const porCostureira = new Map<string, Acumulado>();
+      let pecasProduzidasMes = 0;
+      let totalPadrao = 0;
+      let totalGasto = 0;
 
-      // 4. Meta de hoje da equipe
-      const { data: metaHoje, error: erroMetaHoje } = await supabase
-        .from("metas_diarias")
-        .select("meta_pecas")
-        .eq("data", dataHoje)
-        .maybeSingle();
+      for (const ap of apontamentos) {
+        const sessao = sessaoPorId.get(ap.sessao_id);
+        if (!sessao) continue;
 
-      if (erroMetaHoje) throw erroMetaHoje;
+        // minutos que as peças deveriam levar (quantidade x TP)
+        const padrao = ap.quantidade * sessao.tempo_padrao;
 
-      // --- Agora processa tudo em JS ---
+        const atual = porCostureira.get(sessao.costureira_id) ?? {
+          pecas: 0,
+          padrao: 0,
+          gasto: 0,
+        };
+        atual.pecas += ap.quantidade;
+        atual.padrao += padrao;
+        atual.gasto += ap.minutos_gastos;
+        porCostureira.set(sessao.costureira_id, atual);
 
-      // Soma peças por costureira, pra montar o ranking
-      const totalPorCostureira = new Map<string, number>();
-      for (const linha of producaoMes ?? []) {
-        const atual = totalPorCostureira.get(linha.costureira_id) ?? 0;
-        totalPorCostureira.set(linha.costureira_id, atual + linha.quantidade);
+        pecasProduzidasMes += ap.quantidade;
+        totalPadrao += padrao;
+        totalGasto += ap.minutos_gastos;
       }
 
-      const ranking: RankingPerson[] = (costureiras ?? [])
+      // Eficiência = minutos padrão / minutos gastos (mesma regra da página da costureira)
+      const ranking: RankingPerson[] = costureiras
         .map((c) => {
-          const pecas = totalPorCostureira.get(c.id) ?? 0;
+          const acc = porCostureira.get(c.id);
           const eficiencia =
-            c.meta_mensal > 0 ? Math.round((pecas / c.meta_mensal) * 100) : 0;
-          return { name: c.nome, pieces: pecas, efficiency: eficiencia };
+            acc && acc.gasto > 0 ? Math.round((acc.padrao / acc.gasto) * 100) : 0;
+          return {
+            id: c.id as string,
+            name: c.nome as string,
+            pieces: acc?.pecas ?? 0,
+            efficiency: eficiencia,
+          };
         })
         .sort((a, b) => b.pieces - a.pieces)
         .slice(0, 4);
 
-      const pecasProduzidasMes = Array.from(totalPorCostureira.values()).reduce(
-        (soma, valor) => soma + valor,
-        0,
-      );
-
-      const metaTotalMensal = (costureiras ?? []).reduce(
-        (soma, c) => soma + c.meta_mensal,
-        0,
-      );
-
       const eficienciaMedia =
-        metaTotalMensal > 0
-          ? Math.round((pecasProduzidasMes / metaTotalMensal) * 1000) / 10
-          : 0;
-
-      const pecasHoje = (producaoHoje ?? []).reduce(
-        (soma, linha) => soma + linha.quantidade,
-        0,
-      );
-
-      const metaHojeTotal = metaHoje?.meta_pecas ?? 0;
-      const metaHojePercentual =
-        metaHojeTotal > 0 ? Math.round((pecasHoje / metaHojeTotal) * 100) : 0;
+        totalGasto > 0 ? Math.round((totalPadrao / totalGasto) * 1000) / 10 : 0;
 
       setData({
-        costureirasAtivas: costureiras?.length ?? 0,
+        costureirasAtivas: costureiras.length,
         pecasProduzidasMes,
         eficienciaMedia,
         ranking,
-        metaHojePercentual,
-        pecasHoje,
-        metaHojeTotal,
+        costureiras: costureiras
+          .map((c) => ({ id: c.id as string, nome: c.nome as string }))
+          .sort((a, b) => a.nome.localeCompare(b.nome)),
       });
     } catch (e) {
       console.error(e);
@@ -159,7 +189,7 @@ function Dashboard() {
     <main className="mx-auto min-h-screen max-w-6xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
       <header className="mb-8">
         <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[var(--lagoon-deep)]">
-          CosturaFlow
+          Confectime
         </p>
         <h1 className="text-3xl font-bold tracking-tight">
           Painel das costureiras
@@ -186,16 +216,16 @@ function Dashboard() {
           icon={<Activity className="size-5" />}
           label="Eficiência média"
           value={`${data.eficienciaMedia.toLocaleString("pt-BR")}%`}
-          description="Produzido em relação à meta"
+          description="Tempo padrão em relação ao tempo gasto"
         />
       </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+      <section className="mt-6">
+        <Card>
           <CardHeader>
             <CardTitle>Ranking de desempenho</CardTitle>
             <CardDescription>
-              Produção acumulada da equipe neste mês.
+              Produção acumulada da equipe.
             </CardDescription>
           </CardHeader>
 
@@ -233,41 +263,47 @@ function Dashboard() {
             ))}
           </CardContent>
         </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Resumo de hoje</CardTitle>
-            <CardDescription>Atualizado agora</CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-5">
-            <div className="rounded-xl bg-[var(--chip-bg)] p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-[var(--sea-ink)]">
-                  Meta do dia
-                </p>
-                <CheckCircle2 className="size-5 text-[var(--lagoon-deep)]" />
-              </div>
-              <p className="mt-2 text-3xl font-bold text-[var(--sea-ink)]">
-                {data.metaHojePercentual}%
-              </p>
-              <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-                {data.pecasHoje} de {data.metaHojeTotal} peças
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between border-t pt-4">
-              <div>
-                <p className="font-semibold">Ver costureiras</p>
-                <p className="text-sm text-[var(--sea-ink-soft)]">
-                  Gerencie a equipe e a produção.
-                </p>
-              </div>
-              <ArrowUpRight className="size-5 text-[var(--sea-ink-soft)]" />
-            </div>
-          </CardContent>
-        </Card>
       </section>
+
+      {data.costureiras.length > 0 && (
+        <section className="mt-6">
+          <Card>
+            <CardHeader className="gap-3">
+              <CardTitle>
+                Curva de produção
+                {costureiraDaCurva ? ` — ${costureiraDaCurva.nome}` : ""}
+              </CardTitle>
+              <CardDescription>
+                Eficiência de cada apontamento.
+              </CardDescription>
+              <div className="flex flex-wrap gap-2">
+                {data.costureiras.map((c) => (
+                  <Button
+                    key={c.id}
+                    size="sm"
+                    variant={c.id === curvaId ? "default" : "outline"}
+                    onClick={() => setSelecionadaId(c.id)}
+                  >
+                    {c.nome}
+                  </Button>
+                ))}
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              {curvaCarregando ? (
+                <div className="h-64 animate-pulse rounded-md bg-[var(--muted)]" />
+              ) : curva.length === 0 ? (
+                <p className="text-sm text-[var(--sea-ink-soft)]">
+                  Sem apontamentos para essa costureira ainda.
+                </p>
+              ) : (
+                <CurvaProducao titulo="" pontos={curva} />
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
     </main>
   );
 }

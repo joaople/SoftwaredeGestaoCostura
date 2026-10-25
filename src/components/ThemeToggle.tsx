@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react'
+import { Monitor, Moon, Sun } from 'lucide-react'
 
 type ThemeMode = 'light' | 'dark' | 'auto'
 
+const OPCOES: { valor: ThemeMode; rotulo: string; Icone: typeof Sun }[] = [
+  { valor: 'light', rotulo: 'Claro', Icone: Sun },
+  { valor: 'dark', rotulo: 'Escuro', Icone: Moon },
+  { valor: 'auto', rotulo: 'Auto', Icone: Monitor },
+]
+
 function getInitialMode(): ThemeMode {
   if (typeof window === 'undefined') {
-    return 'auto'
+    return 'light'
   }
 
   const stored = window.localStorage.getItem('theme')
@@ -12,7 +19,7 @@ function getInitialMode(): ThemeMode {
     return stored
   }
 
-  return 'auto'
+  return 'light'
 }
 
 function applyThemeMode(mode: ThemeMode) {
@@ -32,7 +39,7 @@ function applyThemeMode(mode: ThemeMode) {
 }
 
 export default function ThemeToggle() {
-  const [mode, setMode] = useState<ThemeMode>('auto')
+  const [mode, setMode] = useState<ThemeMode>('light')
 
   useEffect(() => {
     const initialMode = getInitialMode()
@@ -54,28 +61,38 @@ export default function ThemeToggle() {
     }
   }, [mode])
 
-  function toggleMode() {
-    const nextMode: ThemeMode =
-      mode === 'light' ? 'dark' : mode === 'dark' ? 'auto' : 'light'
-    setMode(nextMode)
-    applyThemeMode(nextMode)
-    window.localStorage.setItem('theme', nextMode)
+  function escolher(proximo: ThemeMode) {
+    setMode(proximo)
+    applyThemeMode(proximo)
+    window.localStorage.setItem('theme', proximo)
   }
 
-  const label =
-    mode === 'auto'
-      ? 'Theme mode: auto (system). Click to switch to light mode.'
-      : `Theme mode: ${mode}. Click to switch mode.`
-
   return (
-    <button
-      type="button"
-      onClick={toggleMode}
-      aria-label={label}
-      title={label}
-      className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-sm font-semibold text-[var(--sea-ink)] shadow-[0_8px_22px_rgba(30,90,72,0.08)] transition hover:-translate-y-0.5"
+    <div
+      role="group"
+      aria-label="Tema do sistema"
+      className="flex gap-1 rounded-lg bg-white/5 p-1"
     >
-      {mode === 'auto' ? 'Auto' : mode === 'dark' ? 'Dark' : 'Light'}
-    </button>
+      {OPCOES.map(({ valor, rotulo, Icone }) => {
+        const ativo = mode === valor
+        return (
+          <button
+            key={valor}
+            type="button"
+            onClick={() => escolher(valor)}
+            aria-pressed={ativo}
+            title={`Tema ${rotulo.toLowerCase()}`}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+              ativo
+                ? 'bg-white/15 text-white'
+                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <Icone className="h-3.5 w-3.5" />
+            {rotulo}
+          </button>
+        )
+      })}
+    </div>
   )
 }
