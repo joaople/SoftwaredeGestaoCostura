@@ -16,6 +16,7 @@ import {
   listarApontamentos,
   listarSessoes,
   metaSessao,
+  tempoMedioHistorico,
   type ApontamentoProducao,
   type SessaoProducao,
 } from "@/lib/production";
@@ -271,6 +272,8 @@ function PerfilCostureira() {
 
       <NovaSessaoForm
         onSubmit={handleCriarSessao}
+        sessoes={sessoes}
+        apontamentos={apontamentos}
         proximaSequencia={
           sessoes.filter((s) => s.data === hojeISO()).length + 1
         }
@@ -408,6 +411,7 @@ function PerfilCostureira() {
 
                     {sessaoAberta === sessao.id ? (
                       <NovoApontamentoForm
+                        tempoPadrao={Number(sessao.tempo_padrao)}
                         onCancel={() => setSessaoAberta(null)}
                         onSubmit={(v) =>
                           handleCriarApontamento(sessao, v.quantidade, v.hora)
@@ -436,6 +440,8 @@ function PerfilCostureira() {
 function NovaSessaoForm({
   onSubmit,
   proximaSequencia,
+  sessoes,
+  apontamentos,
 }: {
   onSubmit: (v: {
     data: string;
@@ -445,12 +451,15 @@ function NovaSessaoForm({
     tempo_padrao: number;
   }) => void;
   proximaSequencia: number;
+  sessoes: SessaoProducao[];
+  apontamentos: ApontamentoProducao[];
 }) {
   const [aberto, setAberto] = useState(false);
   const [data, setData] = useState(hojeISO());
   const [inicio, setInicio] = useState("07:30");
   const [operacao, setOperacao] = useState("");
-  const [tp, setTp] = useState("1.00");
+  const [tp, setTp] = useState("");
+  const tempoMedio = tempoMedioHistorico(operacao, sessoes, apontamentos);
 
   if (!aberto) {
     return (
@@ -467,10 +476,11 @@ function NovaSessaoForm({
       sequencia: proximaSequencia,
       hora_inicio: inicio,
       operacao,
-      tempo_padrao: Number(tp) || 1,
+      tempo_padrao: Number(tp),
     });
     setAberto(false);
     setOperacao("");
+    setTp("");
   }
 
   return (
@@ -498,7 +508,12 @@ function NovaSessaoForm({
       <Campo label="Operação">
         <Input
           value={operacao}
-          onChange={(e) => setOperacao(e.target.value)}
+          onChange={(e) => {
+            const valor = e.target.value;
+            setOperacao(valor);
+            const media = tempoMedioHistorico(valor, sessoes, apontamentos);
+            setTp(media === null ? "" : media.toFixed(2));
+          }}
           placeholder="20 - FECHAR LATERAL"
           required
         />
@@ -513,6 +528,11 @@ function NovaSessaoForm({
           required
         />
       </Campo>
+      <p className="w-full text-xs text-[var(--sea-ink-soft)]" aria-live="polite">
+        {tempoMedio === null
+          ? "Sem histórico de produção para esta operação. Informe o TP manualmente."
+          : `Média histórica desta operação: ${tempoMedio.toFixed(2)} min/peça.`}
+      </p>
       <div className="flex gap-2">
         <Button type="submit" size="sm">
           Criar
@@ -533,12 +553,17 @@ function NovaSessaoForm({
 function NovoApontamentoForm({
   onSubmit,
   onCancel,
+  tempoPadrao,
 }: {
   onSubmit: (v: { quantidade: number; hora: string }) => void;
   onCancel: () => void;
+  tempoPadrao: number;
 }) {
   const [quantidade, setQuantidade] = useState("");
   const [hora, setHora] = useState("");
+  const quantidadeInformada = Number(quantidade);
+  const tempoEstimado =
+    quantidadeInformada > 0 ? quantidadeInformada * tempoPadrao : 0;
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -562,6 +587,10 @@ function NovoApontamentoForm({
           required
         />
       </Campo>
+      <p className="w-full text-xs text-[var(--sea-ink-soft)]" aria-live="polite">
+        Tempo estimado (não medido): {tempoEstimado.toFixed(2)} min (
+        {formatarMinutos(tempoEstimado)}).
+      </p>
       <Campo label="Hora do apontamento">
         <Input
           type="time"

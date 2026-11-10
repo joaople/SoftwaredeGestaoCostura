@@ -99,6 +99,34 @@ export function eficienciaSessao(
   return ((quantidade * tempoPadrao) / minutos) * 100;
 }
 
+export function tempoMedioHistorico(
+  operacao: string,
+  sessoes: SessaoProducao[],
+  apontamentos: ApontamentoProducao[],
+): number | null {
+  const operacaoNormalizada = operacao.trim().toLowerCase();
+  if (!operacaoNormalizada) return null;
+
+  const sessoesDaOperacao = new Set(
+    sessoes
+      .filter(
+        (sessao) =>
+          sessao.operacao.trim().toLowerCase() === operacaoNormalizada,
+      )
+      .map((sessao) => sessao.id),
+  );
+  let quantidadeTotal = 0;
+  let minutosTotais = 0;
+
+  for (const apontamento of apontamentos) {
+    if (!sessoesDaOperacao.has(apontamento.sessao_id)) continue;
+    quantidadeTotal += Number(apontamento.quantidade);
+    minutosTotais += Number(apontamento.minutos_gastos);
+  }
+
+  return quantidadeTotal > 0 ? minutosTotais / quantidadeTotal : null;
+}
+
 export function formatarMinutos(minutos: number) {
   const total = Math.round(minutos * 60);
   const h = Math.floor(total / 3600);
