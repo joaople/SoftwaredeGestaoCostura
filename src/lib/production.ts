@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 export type SessaoProducao = {
   id: string;
   costureira_id: string;
-  data: string; // YYYY-MM-DD
+  data: string | null; // YYYY-MM-DD
   sequencia: number;
   hora_inicio: string; // HH:MM:SS
   operacao: string;
@@ -25,6 +25,28 @@ export async function listarSessoes(costureiraId: string) {
     .from("sessoes_producao")
     .select("*")
     .eq("costureira_id", costureiraId)
+    .order("data", { ascending: false })
+    .order("sequencia", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as SessaoProducao[];
+}
+
+export async function listarSessoesPorData(
+  costureiraId: string,
+  dataProducao: string | null,
+) {
+  let consulta = supabase
+    .from("sessoes_producao")
+    .select("*")
+    .eq("costureira_id", costureiraId);
+
+  consulta =
+    dataProducao === null
+      ? consulta.is("data", null)
+      : consulta.eq("data", dataProducao);
+
+  const { data, error } = await consulta
     .order("data", { ascending: false })
     .order("sequencia", { ascending: true });
 
@@ -139,7 +161,8 @@ export function formatarHora(value: string) {
   return value.slice(0, 8);
 }
 
-export function formatarData(value: string) {
+export function formatarData(value: string | null) {
+  if (!value) return "Sem data";
   const [y, m, d] = value.slice(0, 10).split("-");
   return `${d}/${m}/${y}`;
 }

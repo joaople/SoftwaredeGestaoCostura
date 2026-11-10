@@ -2,7 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Activity, Package, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { hojeISO, listarApontamentos, listarSessoes } from "@/lib/production";
+import {
+  formatarData,
+  hojeISO,
+  listarApontamentos,
+  listarSessoesPorData,
+} from "@/lib/production";
 import {
   CurvaProducao,
   montarPontosRecentes,
@@ -11,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/")({
@@ -26,16 +32,25 @@ type RankingPerson = {
 
 type DashboardData = {
   costureirasAtivas: number;
-  pecasProduzidasMes: number;
+  pecasProduzidasDia: number;
   eficienciaMedia: number;
   ranking: RankingPerson[];
   costureiras: { id: string; nome: string }[];
+  operacoes: { nome: string; pecas: number; minutos: number }[];
+  sessoesSemData: {
+    id: string;
+    costureira: string;
+    operacao: string;
+    pecas: number;
+    minutos: number;
+  }[];
 };
 
 function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [dataSelecionada, setDataSelecionada] = useState(hojeISO());
 
   // Curva de produção: costureira escolhida nas abas e pontos do gráfico
   const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
@@ -48,8 +63,13 @@ function Dashboard() {
   const costureiraDaCurva = data?.costureiras.find((c) => c.id === curvaId);
 
   useEffect(() => {
-    carregarDados();
-  }, []);
+    let cancelado = false;
+    carregarDados(dataSelecionada, () => !cancelado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelado = true;
+    };
+  }, [dataSelecionada]);
 
   useEffect(() => {
     if (!curvaId) return;
@@ -58,8 +78,9 @@ function Dashboard() {
     async function carregarCurva(id: string) {
       setCurvaCarregando(true);
       try {
-        // Só as sessões mais recentes: evita pedir milhares de ids de uma vez
-        const sessoes = (await listarSessoes(id)).slice(0, 30);
+        const sessoes = (await listarSessoesPorData(id, dataSelecionada))
+          .filter((sessao) => sessao.data !== null)
+          .slice(0, 30);
         const apontamentos = await listarApontamentos(sessoes.map((s) => s.id));
         if (!cancelado) setCurva(montarPontosRecentes(sessoes, apontamentos, 24));
       } catch (e) {
@@ -74,46 +95,54 @@ function Dashboard() {
     return () => {
       cancelado = true;
     };
-  }, [curvaId]);
+  }, [curvaId, dataSelecionada]);
 
-  async function carregarDados() {
+  async function carregarDados(data: string, estaAtivo = () => true) {
+    if (!estaAtivo()) return;
     setLoading(true);
     setErro(null);
 
     try {
-      // Data local (não UTC), no formato YYYY-MM-DD
-      const dataHoje = hojeISO();
-      const inicioDoMes = `${dataHoje.slice(0, 8)}01`;
-
-      // As duas consultas independentes rodam ao mesmo tempo
-      const [resCostureiras, resSessoes] = await Promise.all([
-        supabase.from("costureiras").select("id, nome").eq("ativa", true),
+      const [resCostureiras, resSessoesDoDia, resSessoesSemData] =
+        await Promise.all([
+        supabase.from("costureiras").select("id, nome, ativa"),
         supabase
           .from("sessoes_producao")
-          .select("id, costureira_id, data, tempo_padrao")
-          .gte("data", inicioDoMes),
+          .select("id, costureira_id, data, operacao, tempo_padrao")
+          .eq("data", data),
+        supabase
+          .from("sessoes_producao")
+          .select("id, costureira_id, data, operacao, tempo_padrao")
+          .is("data", null),
       ]);
 
       if (resCostureiras.error) throw resCostureiras.error;
-      if (resSessoes.error) throw resSessoes.error;
+      if (resSessoesDoDia.error) throw resSessoesDoDia.error;
+      if (resSessoesSemData.error) throw resSessoesSemData.error;
 
-      const costureiras = resCostureiras.data ?? [];
-      const sessoes = resSessoes.data ?? [];
+      const todasCostureiras = resCostureiras.data ?? [];
+      const costureiras = todasCostureiras.filter((c) => c.ativa);
+      const sessoesDoDia = resSessoesDoDia.data ?? [];
+      const sessoesSemData = resSessoesSemData.data ?? [];
+      const sessoes = [...sessoesDoDia, ...sessoesSemData];
 
-      // Depende das sessões, por isso vem depois
       const apontamentos = await listarApontamentos(sessoes.map((s) => s.id));
 
       const sessaoPorId = new Map(sessoes.map((s) => [s.id, s]));
+      const nomePorCostureira = new Map(
+        todasCostureiras.map((costureira) => [costureira.id, costureira.nome]),
+      );
 
       type Acumulado = { pecas: number; padrao: number; gasto: number };
       const porCostureira = new Map<string, Acumulado>();
-      let pecasProduzidasMes = 0;
+      const porOperacao = new Map<string, { pecas: number; minutos: number }>();
+      let pecasProduzidasDia = 0;
       let totalPadrao = 0;
       let totalGasto = 0;
 
       for (const ap of apontamentos) {
         const sessao = sessaoPorId.get(ap.sessao_id);
-        if (!sessao) continue;
+        if (!sessao || sessao.data !== data) continue;
 
         // minutos que as peças deveriam levar (quantidade x TP)
         const padrao = ap.quantidade * sessao.tempo_padrao;
@@ -128,9 +157,18 @@ function Dashboard() {
         atual.gasto += ap.minutos_gastos;
         porCostureira.set(sessao.costureira_id, atual);
 
-        pecasProduzidasMes += ap.quantidade;
+        const operacao = sessao.operacao || "Sem operação";
+        const totalOperacao = porOperacao.get(operacao) ?? {
+          pecas: 0,
+          minutos: 0,
+        };
+        totalOperacao.pecas += ap.quantidade;
+        totalOperacao.minutos += Number(ap.minutos_gastos);
+        porOperacao.set(operacao, totalOperacao);
+
+        pecasProduzidasDia += ap.quantidade;
         totalPadrao += padrao;
-        totalGasto += ap.minutos_gastos;
+        totalGasto += Number(ap.minutos_gastos);
       }
 
       // Eficiência = minutos padrão / minutos gastos (mesma regra da página da costureira)
@@ -152,20 +190,42 @@ function Dashboard() {
       const eficienciaMedia =
         totalGasto > 0 ? Math.round((totalPadrao / totalGasto) * 1000) / 10 : 0;
 
+      if (!estaAtivo()) return;
       setData({
         costureirasAtivas: costureiras.length,
-        pecasProduzidasMes,
+        pecasProduzidasDia,
         eficienciaMedia,
         ranking,
         costureiras: costureiras
           .map((c) => ({ id: c.id as string, nome: c.nome as string }))
           .sort((a, b) => a.nome.localeCompare(b.nome)),
+        operacoes: [...porOperacao.entries()]
+          .map(([nome, total]) => ({ nome, ...total }))
+          .sort((a, b) => b.pecas - a.pecas),
+        sessoesSemData: sessoesSemData.map((sessao) => {
+          const linhas = apontamentos.filter(
+            (apontamento) => apontamento.sessao_id === sessao.id,
+          );
+          return {
+            id: sessao.id,
+            costureira:
+              nomePorCostureira.get(sessao.costureira_id) ?? "Costureira",
+            operacao: sessao.operacao || "Sem operação",
+            pecas: linhas.reduce((total, linha) => total + linha.quantidade, 0),
+            minutos: linhas.reduce(
+              (total, linha) => total + Number(linha.minutos_gastos),
+              0,
+            ),
+          };
+        }),
       });
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível carregar os dados. Tente novamente.");
+      if (estaAtivo()) {
+        setErro("Não foi possível carregar os dados. Tente novamente.");
+      }
     } finally {
-      setLoading(false);
+      if (estaAtivo()) setLoading(false);
     }
   }
 
@@ -199,6 +259,24 @@ function Dashboard() {
         </p>
       </header>
 
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <label
+          htmlFor="data-dashboard"
+          className="text-sm text-[var(--sea-ink-soft)]"
+        >
+          Data da produção
+        </label>
+        <Input
+          id="data-dashboard"
+          type="date"
+          value={dataSelecionada}
+          onChange={(e) => {
+            if (e.target.value) setDataSelecionada(e.target.value);
+          }}
+          className="w-auto"
+        />
+      </div>
+
       <section className="grid gap-4 md:grid-cols-3">
         <StatCard
           icon={<Users className="size-5" />}
@@ -209,8 +287,8 @@ function Dashboard() {
         <StatCard
           icon={<Package className="size-5" />}
           label="Peças produzidas"
-          value={data.pecasProduzidasMes.toLocaleString("pt-BR")}
-          description="Produção do mês"
+          value={data.pecasProduzidasDia.toLocaleString("pt-BR")}
+          description={`Produção em ${formatarData(dataSelecionada)}`}
         />
         <StatCard
           icon={<Activity className="size-5" />}
@@ -225,14 +303,14 @@ function Dashboard() {
           <CardHeader>
             <CardTitle>Ranking de desempenho</CardTitle>
             <CardDescription>
-              Produção acumulada da equipe.
+              Produção em {formatarData(dataSelecionada)}.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-5">
             {data.ranking.length === 0 && (
               <p className="text-sm text-[var(--sea-ink-soft)]">
-                Nenhuma produção registrada este mês ainda.
+                Nenhuma produção registrada nesta data.
               </p>
             )}
 
@@ -264,6 +342,64 @@ function Dashboard() {
           </CardContent>
         </Card>
       </section>
+
+      <section className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Produção por operação</CardTitle>
+            <CardDescription>
+              Quantidade e tempo gasto em {formatarData(dataSelecionada)}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {data.operacoes.length === 0 ? (
+              <p className="text-sm text-[var(--sea-ink-soft)]">
+                Nenhuma operação registrada nesta data.
+              </p>
+            ) : (
+              data.operacoes.map((operacao) => (
+                <div
+                  key={operacao.nome}
+                  className="flex flex-wrap justify-between gap-2 border-b border-[var(--line)] pb-2 last:border-0"
+                >
+                  <span className="font-medium">{operacao.nome}</span>
+                  <span className="text-sm text-[var(--sea-ink-soft)]">
+                    {operacao.pecas} peças · {operacao.minutos.toFixed(2)} min
+                  </span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {data.sessoesSemData.length > 0 && (
+        <section className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Registros sem data</CardTitle>
+              <CardDescription>
+                Preservados e não incluídos nos indicadores do dia selecionado.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {data.sessoesSemData.map((sessao) => (
+                <div
+                  key={sessao.id}
+                  className="flex flex-wrap justify-between gap-2 border-b border-[var(--line)] pb-2 last:border-0"
+                >
+                  <span className="font-medium">
+                    {sessao.costureira} · {sessao.operacao}
+                  </span>
+                  <span className="text-sm text-[var(--sea-ink-soft)]">
+                    {sessao.pecas} peças · {sessao.minutos.toFixed(2)} min
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {data.costureiras.length > 0 && (
         <section className="mt-6">

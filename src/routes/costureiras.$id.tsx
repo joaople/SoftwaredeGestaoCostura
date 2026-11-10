@@ -15,6 +15,7 @@ import {
   hojeISO,
   listarApontamentos,
   listarSessoes,
+  listarSessoesPorData,
   metaSessao,
   tempoMedioHistorico,
   type ApontamentoProducao,
@@ -51,6 +52,11 @@ function PerfilCostureira() {
   const [costureira, setCostureira] = useState<Costureira | null>(null);
   const [sessoes, setSessoes] = useState<SessaoProducao[]>([]);
   const [apontamentos, setApontamentos] = useState<ApontamentoProducao[]>([]);
+  const [sessoesHistorico, setSessoesHistorico] = useState<SessaoProducao[]>([]);
+  const [apontamentosHistorico, setApontamentosHistorico] = useState<
+    ApontamentoProducao[]
+  >([]);
+  const [dataSelecionada, setDataSelecionada] = useState(hojeISO());
   const [loading, setLoading] = useState(true);
   const [naoEncontrada, setNaoEncontrada] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -59,16 +65,21 @@ function PerfilCostureira() {
   const [sessaoAberta, setSessaoAberta] = useState<string | null>(null);
 
   useEffect(() => {
-    carregarDados();
+    let cancelado = false;
+    carregarDados(dataSelecionada, () => !cancelado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    return () => {
+      cancelado = true;
+    };
+  }, [id, dataSelecionada]);
 
   function mostrarAviso(mensagem: string) {
     setAviso(mensagem);
     setTimeout(() => setAviso((atual) => (atual === mensagem ? null : atual)), 3000);
   }
 
-  async function carregarDados() {
+  async function carregarDados(data: string, estaAtivo = () => true) {
+    if (!estaAtivo()) return;
     setLoading(true);
     setErro(null);
     setNaoEncontrada(false);
@@ -90,18 +101,34 @@ function PerfilCostureira() {
 
       setCostureira(pessoa);
 
-      const listaSessoes = await listarSessoes(id);
-      setSessoes(listaSessoes);
-
-      const listaApontamentos = await listarApontamentos(
-        listaSessoes.map((s) => s.id),
+      const [sessoesDaData, sessoesSemData, todasSessoes] = await Promise.all([
+        listarSessoesPorData(id, data),
+        listarSessoesPorData(id, null),
+        listarSessoes(id),
+      ]);
+      const todosApontamentos = await listarApontamentos(
+        todasSessoes.map((s) => s.id),
       );
-      setApontamentos(listaApontamentos);
+      if (!estaAtivo()) return;
+      const idsVisiveis = new Set(
+        [...sessoesDaData, ...sessoesSemData].map((sessao) => sessao.id),
+      );
+
+      setSessoes([...sessoesDaData, ...sessoesSemData]);
+      setApontamentos(
+        todosApontamentos.filter((apontamento) =>
+          idsVisiveis.has(apontamento.sessao_id),
+        ),
+      );
+      setSessoesHistorico(todasSessoes);
+      setApontamentosHistorico(todosApontamentos);
     } catch (e: any) {
       console.error(e);
-      setErro("Não foi possível carregar os dados desta costureira.");
+      if (estaAtivo()) {
+        setErro("Não foi possível carregar os dados desta costureira.");
+      }
     } finally {
-      setLoading(false);
+      if (estaAtivo()) setLoading(false);
     }
   }
 
@@ -116,13 +143,17 @@ function PerfilCostureira() {
   }, [apontamentos]);
 
   const agrupadoPorData = useMemo(() => {
-    const mapa = new Map<string, SessaoProducao[]>();
+    const mapa = new Map<string | null, SessaoProducao[]>();
     for (const s of sessoes) {
       const lista = mapa.get(s.data) ?? [];
       lista.push(s);
       mapa.set(s.data, lista);
     }
-    return [...mapa.entries()].sort(([a], [b]) => b.localeCompare(a));
+    return [...mapa.entries()].sort(([a], [b]) => {
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return b.localeCompare(a);
+    });
   }, [sessoes]);
 
   const totais = useMemo(() => {
@@ -130,7 +161,7 @@ function PerfilCostureira() {
     let minutos = 0;
     let esperado = 0;
 
-    for (const s of sessoes) {
+    for (const s of sessoes.filter((sessao) => sessao.data === dataSelecionada)) {
       for (const a of apontamentosPorSessao.get(s.id) ?? []) {
         quantidade += a.quantidade;
         minutos += Number(a.minutos_gastos);
@@ -143,7 +174,7 @@ function PerfilCostureira() {
       minutos,
       eficiencia: esperado > 0 ? (quantidade / esperado) * 100 : 0,
     };
-  }, [sessoes, apontamentosPorSessao]);
+  }, [sessoes, apontamentosPorSessao, dataSelecionada]);
 
   async function handleCriarSessao(payload: {
     data: string;
@@ -155,7 +186,11 @@ function PerfilCostureira() {
     try {
       await criarSessao({ ...payload, costureira_id: id });
       mostrarAviso("Sessão criada");
-      await carregarDados();
+      if (payload.data === dataSelecionada) {
+        await carregarDados(payload.data);
+      } else {
+        setDataSelecionada(payload.data);
+      }
     } catch (e: any) {
       mostrarAviso(`Erro ao criar sessão: ${e?.message ?? "tente novamente"}`);
     }
@@ -165,7 +200,7 @@ function PerfilCostureira() {
     try {
       await excluirSessao(sessaoId);
       mostrarAviso("Sessão removida");
-      await carregarDados();
+      await carregarDados(dataSelecionada);
     } catch (e: any) {
       mostrarAviso(`Erro ao remover sessão: ${e?.message ?? "tente novamente"}`);
     }
@@ -175,7 +210,7 @@ function PerfilCostureira() {
     try {
       await excluirApontamento(apontamentoId);
       mostrarAviso("Apontamento removido");
-      await carregarDados();
+      await carregarDados(dataSelecionada);
     } catch (e: any) {
       mostrarAviso(`Erro ao remover apontamento: ${e?.message ?? "tente novamente"}`);
     }
@@ -206,7 +241,7 @@ function PerfilCostureira() {
       });
       mostrarAviso("Apontamento registrado");
       setSessaoAberta(null);
-      await carregarDados();
+      await carregarDados(dataSelecionada);
     } catch (e: any) {
       mostrarAviso(`Erro ao registrar: ${e?.message ?? "tente novamente"}`);
     }
@@ -270,26 +305,42 @@ function PerfilCostureira() {
         </div>
       </header>
 
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <Label htmlFor="data-historico" className="text-sm text-[var(--sea-ink-soft)]">
+          Data da produção
+        </Label>
+        <Input
+          id="data-historico"
+          type="date"
+          value={dataSelecionada}
+          onChange={(e) => {
+            if (e.target.value) setDataSelecionada(e.target.value);
+          }}
+          className="w-auto"
+        />
+      </div>
+
       <NovaSessaoForm
         onSubmit={handleCriarSessao}
-        sessoes={sessoes}
-        apontamentos={apontamentos}
+        sessoes={sessoesHistorico}
+        apontamentos={apontamentosHistorico}
         proximaSequencia={
-          sessoes.filter((s) => s.data === hojeISO()).length + 1
+          sessoesHistorico.filter((s) => s.data === dataSelecionada).length + 1
         }
       />
 
       <div className="mt-6 space-y-6">
-        {sessoes.length === 0 && (
+        {sessoes.filter((s) => s.data === dataSelecionada).length === 0 &&
+          sessoes.filter((s) => s.data === null).length === 0 && (
           <p className="text-sm text-[var(--sea-ink-soft)]">
-            Nenhuma sessão registrada para esta costureira.
+            Nenhuma sessão registrada para esta costureira nesta data.
           </p>
         )}
 
         {agrupadoPorData.map(([data, sessoesDoDia]) => (
           <section key={data} className="space-y-4">
             <h2 className="text-sm font-semibold uppercase text-[var(--sea-ink-soft)]">
-              {formatarData(data)}
+              {data === null ? "Registros sem data" : formatarData(data)}
             </h2>
 
             {sessoesDoDia.map((sessao) => {
@@ -299,11 +350,13 @@ function PerfilCostureira() {
                 (a, r) => a + Number(r.minutos_gastos),
                 0,
               );
-              const eficiencia = eficienciaSessao(
-                quantidade,
-                minutos,
-                Number(sessao.tempo_padrao),
-              );
+              const eficiencia = sessao.data === null
+                ? 0
+                : eficienciaSessao(
+                    quantidade,
+                    minutos,
+                    Number(sessao.tempo_padrao),
+                  );
 
               return (
                 <Card key={sessao.id}>
@@ -314,13 +367,18 @@ function PerfilCostureira() {
                         {sessao.operacao || "Sem operação"}
                       </CardTitle>
                       <p className="text-xs text-[var(--sea-ink-soft)]">
-                        Início {formatarHora(sessao.hora_inicio)} · TP{" "}
-                        {Number(sessao.tempo_padrao).toFixed(2)} min/peça
+                        {sessao.data === null
+                          ? "Data não informada · "
+                          : `Início ${formatarHora(sessao.hora_inicio)} · `}
+                        TP {Number(sessao.tempo_padrao).toFixed(2)} min/peça
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={eficiencia >= 100 ? "default" : "secondary"}>
-                        {eficiencia.toFixed(1)}% · {quantidade} pçs
+                        {sessao.data === null
+                          ? "Sem data · "
+                          : `${eficiencia.toFixed(1)}% · `}
+                        {quantidade} pçs
                       </Badge>
                       <Button
                         size="icon-sm"
