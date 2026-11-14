@@ -7,6 +7,7 @@ import {
   hojeISO,
   listarApontamentos,
   listarSessoesPorData,
+  paginarConsulta,
 } from "@/lib/production";
 import {
   CurvaProducao,
@@ -103,27 +104,29 @@ function Dashboard() {
     setErro(null);
 
     try {
-      const [resCostureiras, resSessoesDoDia, resSessoesSemData] =
+      const [resCostureiras, resSessoesDoDia, sessoesSemData] =
         await Promise.all([
         supabase.from("costureiras").select("id, nome, ativa"),
         supabase
           .from("sessoes_producao")
           .select("id, costureira_id, data, operacao, tempo_padrao")
           .eq("data", data),
-        supabase
-          .from("sessoes_producao")
-          .select("id, costureira_id, data, operacao, tempo_padrao")
-          .is("data", null),
+        paginarConsulta((inicio, fim) =>
+          supabase
+            .from("sessoes_producao")
+            .select("id, costureira_id, data, operacao, tempo_padrao")
+            .is("data", null)
+            .order("id", { ascending: true })
+            .range(inicio, fim),
+        ),
       ]);
 
       if (resCostureiras.error) throw resCostureiras.error;
       if (resSessoesDoDia.error) throw resSessoesDoDia.error;
-      if (resSessoesSemData.error) throw resSessoesSemData.error;
 
       const todasCostureiras = resCostureiras.data ?? [];
       const costureiras = todasCostureiras.filter((c) => c.ativa);
       const sessoesDoDia = resSessoesDoDia.data ?? [];
-      const sessoesSemData = resSessoesSemData.data ?? [];
       const sessoes = [...sessoesDoDia, ...sessoesSemData];
 
       const apontamentos = await listarApontamentos(sessoes.map((s) => s.id));

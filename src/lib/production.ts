@@ -1,5 +1,31 @@
 import { supabase } from "./supabase";
 
+const TAMANHO_PAGINA = 1000;
+
+export async function paginarConsulta<T>(
+  consultar: (
+    inicio: number,
+    fim: number,
+  ) => PromiseLike<{
+    data: T[] | null;
+    error: { message: string } | null;
+  }>,
+): Promise<T[]> {
+  const resultados: T[] = [];
+
+  for (let inicio = 0; ; inicio += TAMANHO_PAGINA) {
+    const { data, error } = await consultar(
+      inicio,
+      inicio + TAMANHO_PAGINA - 1,
+    );
+    if (error) throw error;
+
+    const pagina = data ?? [];
+    resultados.push(...pagina);
+    if (pagina.length < TAMANHO_PAGINA) return resultados;
+  }
+}
+
 export type SessaoProducao = {
   id: string;
   costureira_id: string;
@@ -57,14 +83,31 @@ export async function listarSessoesPorData(
 export async function listarApontamentos(sessaoIds: string[]) {
   if (sessaoIds.length === 0) return [] as ApontamentoProducao[];
 
-  const { data, error } = await supabase
-    .from("apontamentos_producao")
-    .select("*")
-    .in("sessao_id", sessaoIds)
-    .order("hora", { ascending: true });
+  const blocos: string[][] = [];
+  for (let inicio = 0; inicio < sessaoIds.length; inicio += 100) {
+    blocos.push(sessaoIds.slice(inicio, inicio + 100));
+  }
 
-  if (error) throw error;
-  return (data ?? []) as ApontamentoProducao[];
+  const resultados = await Promise.all(
+    blocos.map((bloco) =>
+      paginarConsulta<ApontamentoProducao>((inicio, fim) =>
+        supabase
+          .from("apontamentos_producao")
+          .select("*")
+          .in("sessao_id", bloco)
+          .order("hora", { ascending: true })
+          .order("id", { ascending: true })
+          .range(inicio, fim),
+      ),
+    ),
+  );
+
+  return resultados
+    .flat()
+    .sort(
+      (a, b) =>
+        a.hora.localeCompare(b.hora) || a.id.localeCompare(b.id),
+    );
 }
 
 export async function criarSessao(payload: {
