@@ -9,7 +9,7 @@ Aplicativo de gestão de produção de costura. Responda e comente sempre em por
 - Não existe `react-query` nem biblioteca de toasts: busque dados com `useState` + `useEffect` e mostre avisos na própria tela. Não adicione dependências novas sem necessidade.
 - Textos da interface, nomes de tabelas, colunas, funções e variáveis em português.
 - `src/routeTree.gen.ts` é gerado automaticamente: não edite à mão. Para regenerar: `npm run generate-routes`.
-- Scripts disponíveis: `npm run dev` (porta 3000), `npm run build`, `npm run preview`.
+- Scripts disponíveis: `npm run dev` (porta 3000), `npm run generate-routes`, `npm run typecheck` (verifica tipos sem gerar arquivos), `npm run build` (não verifica tipos), `npm run preview`.
 - Alterações no banco vão em um novo arquivo numerado em `sql/` (ex.: `sql/002_descricao.sql`), sempre idempotente (`if not exists`, `drop policy if exists`) e com RLS ligada.
 
 ## Regra de negócio
