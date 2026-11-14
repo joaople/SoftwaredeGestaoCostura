@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Scissors, LayoutGrid, Users, User } from "lucide-react";
+import {
+  Scissors,
+  LayoutGrid,
+  Users,
+  User,
+  ClipboardList,
+  UserRound,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { COSTUREIRAS_ATUALIZADAS } from "@/lib/api";
 import ThemeToggle from "./ThemeToggle";
@@ -98,6 +105,30 @@ export function Sidebar() {
         >
           <Users className="h-4 w-4" />
           Costureiras
+        </Link>
+
+        <Link
+          to="/tarefas"
+          className={`flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors ${
+            isActive("/tarefas")
+              ? "bg-white/15 text-white"
+              : "text-slate-300 hover:bg-white/5 hover:text-white"
+          }`}
+        >
+          <ClipboardList className="h-4 w-4" />
+          Tarefas
+        </Link>
+
+        <Link
+          to="/perfil"
+          className={`flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors ${
+            isActive("/perfil")
+              ? "bg-white/15 text-white"
+              : "text-slate-300 hover:bg-white/5 hover:text-white"
+          }`}
+        >
+          <UserRound className="h-4 w-4" />
+          Meu perfil
         </Link>
       </nav>
 
