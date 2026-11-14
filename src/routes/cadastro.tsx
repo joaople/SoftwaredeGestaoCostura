@@ -20,7 +20,7 @@ function CadastroPage() {
   return (
     <SignupForm
       onSubmit={handleSignup}
-      o// TODO: trocar para "/login" quando a tela de login for mesclada
+      // TODO: trocar para "/login" quando a tela de login for mesclada
 onGoToLogin={() => navigate({ to: "/" })}
     />
   );
