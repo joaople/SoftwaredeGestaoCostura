@@ -9,6 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -49,6 +57,10 @@ function Tarefas() {
   const [rascunho, setRascunho] = useState<Record<string, string>>({});
   const [criando, setCriando] = useState(false);
   const [mensagem, setMensagem] = useState<Mensagem | null>(null);
+  const [operacaoParaExcluir, setOperacaoParaExcluir] =
+    useState<Operacao | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null);
 
   async function carregar() {
     try {
@@ -144,18 +156,29 @@ function Tarefas() {
     }
   }
 
-  async function handleExcluir(id: string) {
+  function pedirExclusao(operacao: Operacao) {
+    setErroExclusao(null);
+    setOperacaoParaExcluir(operacao);
+  }
+
+  async function confirmarExclusao() {
+    if (!operacaoParaExcluir) return;
+
     setMensagem(null);
+    setExcluindo(true);
+    setErroExclusao(null);
     try {
-      await excluirOperacao(id);
+      await excluirOperacao(operacaoParaExcluir.id);
+      setOperacaoParaExcluir(null);
       setMensagem({ tipo: "ok", texto: "Tarefa removida." });
       await carregar();
     } catch (erro) {
       console.error(erro);
-      setMensagem({
-        tipo: "erro",
-        texto: mensagemDeErro(erro, "Não foi possível remover a tarefa."),
-      });
+      setErroExclusao(
+        mensagemDeErro(erro, "Não foi possível remover a tarefa."),
+      );
+    } finally {
+      setExcluindo(false);
     }
   }
 
@@ -312,7 +335,7 @@ function Tarefas() {
                           size="icon-sm"
                           variant="ghost"
                           aria-label={`Excluir tarefa ${operacao.nome}`}
-                          onClick={() => void handleExcluir(operacao.id)}
+                          onClick={() => pedirExclusao(operacao)}
                         >
                           <Trash2 className="text-red-600" />
                         </Button>
@@ -325,6 +348,50 @@ function Tarefas() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog
+        open={!!operacaoParaExcluir}
+        onOpenChange={(open) => {
+          if (!open && !excluindo) setOperacaoParaExcluir(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir tarefa</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir{" "}
+              <strong>{operacaoParaExcluir?.nome}</strong>? Os tempos de todas
+              as costureiras nessa tarefa também serão apagados. Essa ação não
+              pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+
+          {erroExclusao && (
+            <p role="alert" className="text-sm text-red-600">
+              {erroExclusao}
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOperacaoParaExcluir(null)}
+              disabled={excluindo}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmarExclusao}
+              disabled={excluindo}
+            >
+              {excluindo ? "Excluindo..." : "Excluir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
