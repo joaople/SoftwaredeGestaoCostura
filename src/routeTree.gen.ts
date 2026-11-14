@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as TarefasRouteImport } from './routes/tarefas'
 import { Route as CostureirasIndexRouteImport } from './routes/costureiras.index'
 import { Route as CostureirasIdRouteImport } from './routes/costureiras.$id'
 
@@ -36,6 +38,16 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TarefasRoute = TarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CostureirasIndexRoute = CostureirasIndexRouteImport.update({
   id: '/costureiras/',
   path: '/costureiras/',
@@ -52,6 +64,8 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
+  '/perfil': typeof PerfilRoute
+  '/tarefas': typeof TarefasRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras/': typeof CostureirasIndexRoute
 }
@@ -60,6 +74,8 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
+  '/perfil': typeof PerfilRoute
+  '/tarefas': typeof TarefasRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras': typeof CostureirasIndexRoute
 }
@@ -69,6 +85,8 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
+  '/perfil': typeof PerfilRoute
+  '/tarefas': typeof TarefasRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras/': typeof CostureirasIndexRoute
 }
@@ -79,6 +97,8 @@ export interface FileRouteTypes {
     | '/about'
     | '/cadastro'
     | '/login'
+    | '/perfil'
+    | '/tarefas'
     | '/costureiras/$id'
     | '/costureiras/'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +107,8 @@ export interface FileRouteTypes {
     | '/about'
     | '/cadastro'
     | '/login'
+    | '/perfil'
+    | '/tarefas'
     | '/costureiras/$id'
     | '/costureiras'
   id:
@@ -95,6 +117,8 @@ export interface FileRouteTypes {
     | '/about'
     | '/cadastro'
     | '/login'
+    | '/perfil'
+    | '/tarefas'
     | '/costureiras/$id'
     | '/costureiras/'
   fileRoutesById: FileRoutesById
@@ -104,6 +128,8 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CadastroRoute: typeof CadastroRoute
   LoginRoute: typeof LoginRoute
+  PerfilRoute: typeof PerfilRoute
+  TarefasRoute: typeof TarefasRoute
   CostureirasIdRoute: typeof CostureirasIdRoute
   CostureirasIndexRoute: typeof CostureirasIndexRoute
 }
@@ -138,6 +164,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tarefas': {
+      id: '/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof TarefasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/costureiras/': {
       id: '/costureiras/'
       path: '/costureiras'
@@ -160,18 +200,11 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CadastroRoute: CadastroRoute,
   LoginRoute: LoginRoute,
+  PerfilRoute: PerfilRoute,
+  TarefasRoute: TarefasRoute,
   CostureirasIdRoute: CostureirasIdRoute,
   CostureirasIndexRoute: CostureirasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
