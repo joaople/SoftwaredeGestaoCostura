@@ -15,6 +15,7 @@ import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as TarefasRouteImport } from './routes/tarefas'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as CostureirasIndexRouteImport } from './routes/costureiras.index'
 import { Route as CostureirasIdRouteImport } from './routes/costureiras.$id'
 
@@ -48,6 +49,11 @@ const TarefasRoute = TarefasRouteImport.update({
   path: '/tarefas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CostureirasIndexRoute = CostureirasIndexRouteImport.update({
   id: '/costureiras/',
   path: '/costureiras/',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/tarefas': typeof TarefasRoute
+  '/usuarios': typeof UsuariosRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras/': typeof CostureirasIndexRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/tarefas': typeof TarefasRoute
+  '/usuarios': typeof UsuariosRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras': typeof CostureirasIndexRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/tarefas': typeof TarefasRoute
+  '/usuarios': typeof UsuariosRoute
   '/costureiras/$id': typeof CostureirasIdRoute
   '/costureiras/': typeof CostureirasIndexRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/tarefas'
+    | '/usuarios'
     | '/costureiras/$id'
     | '/costureiras/'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/tarefas'
+    | '/usuarios'
     | '/costureiras/$id'
     | '/costureiras'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/tarefas'
+    | '/usuarios'
     | '/costureiras/$id'
     | '/costureiras/'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PerfilRoute: typeof PerfilRoute
   TarefasRoute: typeof TarefasRoute
+  UsuariosRoute: typeof UsuariosRoute
   CostureirasIdRoute: typeof CostureirasIdRoute
   CostureirasIndexRoute: typeof CostureirasIndexRoute
 }
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TarefasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/costureiras/': {
       id: '/costureiras/'
       path: '/costureiras'
@@ -202,9 +222,19 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PerfilRoute: PerfilRoute,
   TarefasRoute: TarefasRoute,
+  UsuariosRoute: UsuariosRoute,
   CostureirasIdRoute: CostureirasIdRoute,
   CostureirasIndexRoute: CostureirasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

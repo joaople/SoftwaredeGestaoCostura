@@ -7,8 +7,12 @@ import {
   User,
   ClipboardList,
   UserRound,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { ROTULO_PAPEL } from "@/lib/acesso";
+import { useAcesso } from "@/lib/acesso-context";
 import { COSTUREIRAS_ATUALIZADAS } from "@/lib/api";
 import ThemeToggle from "./ThemeToggle";
 
@@ -20,6 +24,7 @@ type Costureira = {
 export function Sidebar() {
   const [costureiras, setCostureiras] = useState<Costureira[]>([]);
   const location = useLocation();
+  const { papel, ehAdmin } = useAcesso();
 
   useEffect(() => {
   async function carregar() {
@@ -130,11 +135,40 @@ export function Sidebar() {
           <UserRound className="h-4 w-4" />
           Meu perfil
         </Link>
+
+        {/* Só administradores veem: é onde se define quem é editor */}
+        {ehAdmin && (
+          <Link
+            to="/usuarios"
+            className={`flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors ${
+              isActive("/usuarios")
+                ? "bg-white/15 text-white"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Usuários
+          </Link>
+        )}
       </nav>
 
       <div className="mt-auto px-3 pb-4 pt-6">
+        {papel && (
+          <p className="mb-2 px-2 text-xs text-slate-400">
+            Acesso: {ROTULO_PAPEL[papel]}
+          </p>
+        )}
+        {/* Ao sair, o AuthGate percebe e leva para a tela de login */}
+        <button
+          type="button"
+          onClick={() => void supabase.auth.signOut()}
+          className="mb-3 flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+        >
+          <LogOut className="h-4 w-4" />
+          Sair
+        </button>
         <ThemeToggle />
       </div>
     </aside>
   );
-}
+}

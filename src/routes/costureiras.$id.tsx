@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAcesso } from "@/lib/acesso-context";
 import {
   Table,
   TableBody,
@@ -47,6 +48,7 @@ type Costureira = {
 };
 
 function PerfilCostureira() {
+  const { podeEditar } = useAcesso();
   const { id } = Route.useParams();
 
   const [costureira, setCostureira] = useState<Costureira | null>(null);
@@ -320,14 +322,16 @@ function PerfilCostureira() {
         />
       </div>
 
-      <NovaSessaoForm
-        onSubmit={handleCriarSessao}
-        sessoes={sessoesHistorico}
-        apontamentos={apontamentosHistorico}
-        proximaSequencia={
-          sessoesHistorico.filter((s) => s.data === dataSelecionada).length + 1
-        }
-      />
+      {podeEditar && (
+        <NovaSessaoForm
+          onSubmit={handleCriarSessao}
+          sessoes={sessoesHistorico}
+          apontamentos={apontamentosHistorico}
+          proximaSequencia={
+            sessoesHistorico.filter((s) => s.data === dataSelecionada).length + 1
+          }
+        />
+      )}
 
       <div className="mt-6 space-y-6">
         {sessoes.filter((s) => s.data === dataSelecionada).length === 0 &&
@@ -380,14 +384,16 @@ function PerfilCostureira() {
                           : `${eficiencia.toFixed(1)}% · `}
                         {quantidade} pçs
                       </Badge>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label="Excluir sessão"
-                        onClick={() => handleExcluirSessao(sessao.id)}
-                      >
-                        <Trash2 className="size-4 text-red-600" />
-                      </Button>
+                      {podeEditar && (
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label="Excluir sessão"
+                          onClick={() => handleExcluirSessao(sessao.id)}
+                        >
+                          <Trash2 className="size-4 text-red-600" />
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
 
@@ -451,14 +457,16 @@ function PerfilCostureira() {
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Button
-                                    size="icon-sm"
-                                    variant="ghost"
-                                    aria-label="Excluir apontamento"
-                                    onClick={() => handleExcluirApontamento(r.id)}
-                                  >
-                                    <Trash2 className="size-4 text-red-600" />
-                                  </Button>
+                                  {podeEditar && (
+                                    <Button
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label="Excluir apontamento"
+                                      onClick={() => handleExcluirApontamento(r.id)}
+                                    >
+                                      <Trash2 className="size-4 text-red-600" />
+                                    </Button>
+                                  )}
                                 </TableCell>
                               </TableRow>
                             );
@@ -467,7 +475,7 @@ function PerfilCostureira() {
                       </Table>
                     </div>
 
-                    {sessaoAberta === sessao.id ? (
+                    {podeEditar && (sessaoAberta === sessao.id ? (
                       <NovoApontamentoForm
                         tempoPadrao={Number(sessao.tempo_padrao)}
                         onCancel={() => setSessaoAberta(null)}
@@ -483,7 +491,7 @@ function PerfilCostureira() {
                       >
                         <Plus className="mr-1 size-4" /> Apontar produção
                       </Button>
-                    )}
+                    ))}
                   </CardContent>
                 </Card>
               );
