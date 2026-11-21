@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatarMinutos } from "@/lib/production";
+import { useAcesso } from "@/lib/acesso-context";
 import {
   criarOperacao,
   excluirOperacao,
@@ -48,6 +49,7 @@ export const Route = createFileRoute("/tarefas")({
 type Mensagem = { tipo: "ok" | "erro"; texto: string };
 
 function Tarefas() {
+  const { podeEditar } = useAcesso();
   const [costureiras, setCostureiras] = useState<CostureiraAtiva[]>([]);
   const [operacoes, setOperacoes] = useState<Operacao[]>([]);
   const [tempos, setTempos] = useState<TempoOperacao[]>([]);
@@ -207,6 +209,7 @@ function Tarefas() {
       )}
 
       <div className="space-y-6">
+        {podeEditar && (
         <Card>
           <CardHeader>
             <CardTitle>Nova tarefa</CardTitle>
@@ -254,12 +257,15 @@ function Tarefas() {
             </form>
           </CardContent>
         </Card>
+        )}
 
         <Card>
           <CardHeader>
             <CardTitle>Tempo médio por costureira</CardTitle>
             <CardDescription>
-              Altere um valor e clique fora do campo para salvar.
+              {podeEditar
+                ? "Altere um valor e clique fora do campo para salvar."
+                : "Tempo médio por peça de cada costureira em cada tarefa."}
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
@@ -298,6 +304,11 @@ function Tarefas() {
                         const t = tempoDe(operacao.id, c.id);
                         return (
                           <TableCell key={c.id} className="text-center">
+                            {!podeEditar ? (
+                              <span className="tabular-nums">
+                                {t ? Number(t.minutos_por_peca).toFixed(2) : "—"}
+                              </span>
+                            ) : (
                             <Input
                               key={`${operacao.id}-${c.id}-${t?.minutos_por_peca ?? ""}`}
                               type="number"
@@ -327,18 +338,21 @@ function Tarefas() {
                                 }
                               }}
                             />
+                            )}
                           </TableCell>
                         );
                       })}
                       <TableCell className="text-right">
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          aria-label={`Excluir tarefa ${operacao.nome}`}
-                          onClick={() => pedirExclusao(operacao)}
-                        >
-                          <Trash2 className="text-red-600" />
-                        </Button>
+                        {podeEditar && (
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            aria-label={`Excluir tarefa ${operacao.nome}`}
+                            onClick={() => pedirExclusao(operacao)}
+                          >
+                            <Trash2 className="text-red-600" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

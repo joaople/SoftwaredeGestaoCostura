@@ -1,11 +1,6 @@
-import {
-  HeadContent,
-  Scripts,
-  createRootRoute,
-  useLocation,
-} from "@tanstack/react-router";
+import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
-import { Sidebar } from "@/components/Sidebar";
+import { AuthGate } from "@/components/AuthGate";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -26,28 +21,15 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
 });
 
-const PUBLIC_ROUTES = ["/login", "/cadastro"];
-
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const { pathname } = useLocation();
-  const isPublic = PUBLIC_ROUTES.includes(pathname);
-
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body className="bg-[var(--bg-base)] font-sans antialiased text-[var(--foreground)]">
-        {isPublic ? (
-          children
-        ) : (
-          <div className="flex min-h-screen bg-[var(--bg-base)]">
-            <Sidebar />
-            <div className="flex-1 bg-[var(--bg-base)] text-[var(--foreground)]">
-              {children}
-            </div>
-          </div>
-        )}
+        {/* Decide entre tela de login e sistema (com menu lateral) */}
+        <AuthGate>{children}</AuthGate>
         <Scripts />
       </body>
     </html>
