@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAcesso } from "@/lib/acesso-context";
 
 export const Route = createFileRoute("/costureiras/")({
   component: ListaCostureiras,
@@ -30,7 +29,6 @@ type LinhaCostureira = {
 };
 
 function ListaCostureiras() {
-  const { podeEditar } = useAcesso();
   const [linhas, setLinhas] = useState<LinhaCostureira[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -147,7 +145,7 @@ function ListaCostureiras() {
           </p>
         </div>
 
-        {podeEditar && <Button onClick={abrirModal}>Nova costureira</Button>}
+        <Button onClick={abrirModal}>Nova costureira</Button>
       </header>
 
       <Card>
@@ -175,9 +173,7 @@ function ListaCostureiras() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Status</TableHead>
-                  {podeEditar && (
-                    <TableHead className="text-right">Ações</TableHead>
-                  )}
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -197,18 +193,16 @@ function ListaCostureiras() {
                         {linha.ativa ? "Ativa" : "Inativa"}
                       </Badge>
                     </TableCell>
-                    {podeEditar && (
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => pedirExclusao(linha)}
-                          aria-label={`Excluir ${linha.nome}`}
-                        >
-                          <Trash2 className="text-red-600" />
-                        </Button>
-                      </TableCell>
-                    )}
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => pedirExclusao(linha)}
+                        aria-label={`Excluir ${linha.nome}`}
+                      >
+                        <Trash2 className="text-red-600" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
