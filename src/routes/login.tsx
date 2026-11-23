@@ -7,71 +7,30 @@ export const Route = createFileRoute('/login')({
   component: LoginPage,
 })
 
-type Mode = 'login' | 'signup'
-
 function LoginPage() {
   const navigate = useNavigate()
-  const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [info, setInfo] = useState<string | null>(null)
-
-  const isSignup = mode === 'signup'
-
-  function switchMode(next: Mode) {
-    setMode(next)
-    setError(null)
-    setInfo(null)
-    setPassword('')
-    setConfirm('')
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    setInfo(null)
-
-    if (isSignup) {
-      if (password.length < 8) {
-        setError('A senha precisa ter pelo menos 8 caracteres.')
-        return
-      }
-      if (password !== confirm) {
-        setError('As senhas não conferem.')
-        return
-      }
-    }
-
     setLoading(true)
 
-    if (isSignup) {
-      const { data, error } = await supabase.auth.signUp({ email, password })
-      setLoading(false)
-      if (error) {
-        setError(error.message)
-        return
-      }
-      if (data.session) {
-        navigate({ to: '/' })
-      } else {
-        setInfo('Conta criada! Confira seu e-mail para confirmar o cadastro.')
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      setLoading(false)
-      if (error) {
-        setError('E-mail ou senha incorretos.')
-        return
-      }
-      navigate({ to: '/' })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    setLoading(false)
+
+    if (error) {
+      setError('E-mail ou senha incorretos.')
+      return
     }
+    navigate({ to: '/' })
   }
 
   return (
@@ -90,26 +49,14 @@ function LoginPage() {
 
         {/* Título */}
         <p className="text-sm font-medium uppercase tracking-wide text-blue-900">
-          {isSignup ? 'Seu novo começo' : 'Bem-vindo de volta'}
+          Bem-vindo de volta
         </p>
         <h1 className="mt-3 text-5xl font-extrabold tracking-tight text-slate-900">
-          {isSignup ? 'Crie sua conta.' : 'Entre na sua conta.'}
+          Entre na sua conta.
         </h1>
         <p className="mt-6 text-lg text-slate-600">
-          {isSignup
-            ? 'Cadastre seu e-mail e escolha uma senha segura.'
-            : 'Digite seu e-mail e senha para acessar o sistema.'}
+          Digite seu e-mail e senha para acessar o sistema.
         </p>
-
-        {/* Abas */}
-        <div className="mt-10 grid grid-cols-2 border-b border-slate-200">
-          <TabButton active={!isSignup} onClick={() => switchMode('login')}>
-            Entrar
-          </TabButton>
-          <TabButton active={isSignup} onClick={() => switchMode('signup')}>
-            Cadastrar
-          </TabButton>
-        </div>
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="mt-10 space-y-6">
@@ -146,36 +93,17 @@ function LoginPage() {
             <input
               type={showPassword ? 'text' : 'password'}
               required
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              placeholder={isSignup ? 'Pelo menos 8 caracteres' : 'Sua senha'}
+              autoComplete="current-password"
+              placeholder="Sua senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-transparent outline-none placeholder:text-slate-400"
             />
           </Field>
 
-          {isSignup && (
-            <Field label="Confirmar senha" icon={<Lock className="size-5" />}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                autoComplete="new-password"
-                placeholder="Digite a senha novamente"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="w-full bg-transparent outline-none placeholder:text-slate-400"
-              />
-            </Field>
-          )}
-
           {error && (
             <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
-            </p>
-          )}
-          {info && (
-            <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              {info}
             </p>
           )}
 
@@ -184,41 +112,16 @@ function LoginPage() {
             disabled={loading}
             className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-900 text-lg font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
           >
-            {loading
-              ? 'Aguarde...'
-              : isSignup
-                ? 'Criar conta'
-                : 'Entrar'}
+            {loading ? 'Aguarde...' : 'Entrar'}
             {!loading && <ArrowRight className="size-5" />}
           </button>
         </form>
+
+        <p className="mt-8 text-center text-sm text-slate-500">
+          Ainda não tem acesso? Solicite ao administrador do sistema.
+        </p>
       </div>
     </div>
-  )
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        'h-14 text-lg font-semibold transition border-b-2 -mb-px ' +
-        (active
-          ? 'border-blue-900 bg-white text-blue-900'
-          : 'border-transparent text-slate-500 hover:text-slate-800')
-      }
-    >
-      {children}
-    </button>
   )
 }
 
