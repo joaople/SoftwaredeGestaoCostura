@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as TarefasRouteImport } from './routes/tarefas'
@@ -27,11 +26,6 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CadastroRoute = CadastroRouteImport.update({
-  id: '/cadastro',
-  path: '/cadastro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -68,7 +62,6 @@ const CostureirasIdRoute = CostureirasIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/tarefas': typeof TarefasRoute
@@ -79,7 +72,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/tarefas': typeof TarefasRoute
@@ -91,7 +83,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/tarefas': typeof TarefasRoute
@@ -104,7 +95,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
-    | '/cadastro'
     | '/login'
     | '/perfil'
     | '/tarefas'
@@ -115,7 +105,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/cadastro'
     | '/login'
     | '/perfil'
     | '/tarefas'
@@ -126,7 +115,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
-    | '/cadastro'
     | '/login'
     | '/perfil'
     | '/tarefas'
@@ -138,7 +126,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  CadastroRoute: typeof CadastroRoute
   LoginRoute: typeof LoginRoute
   PerfilRoute: typeof PerfilRoute
   TarefasRoute: typeof TarefasRoute
@@ -161,13 +148,6 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cadastro': {
-      id: '/cadastro'
-      path: '/cadastro'
-      fullPath: '/cadastro'
-      preLoaderRoute: typeof CadastroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -218,7 +198,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  CadastroRoute: CadastroRoute,
   LoginRoute: LoginRoute,
   PerfilRoute: PerfilRoute,
   TarefasRoute: TarefasRoute,

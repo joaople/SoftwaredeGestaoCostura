@@ -14,7 +14,7 @@ import { AguardandoLiberacao } from "@/components/AguardandoLiberacao";
 import { Sidebar } from "@/components/Sidebar";
 
 // Páginas que qualquer pessoa pode abrir sem estar logada.
-const PUBLIC_ROUTES = ["/login", "/cadastro"];
+const PUBLIC_ROUTES = ["/login"];
 
 type EstadoAcesso =
   | { estado: "carregando" }
@@ -33,7 +33,7 @@ function Carregando() {
  * Porteiro do sistema.
  *
  * - Sem login: qualquer página leva para /login.
- * - Com login: /login e /cadastro levam para o painel, e o menu lateral aparece.
+ * - Com login: /login leva para o painel, e o menu lateral aparece.
  * - Com login mas sem acesso liberado: mostra a tela "Acesso não liberado".
  * - Com acesso: descobre o papel (leitor, editor ou administrador) e o
  *   disponibiliza para todas as telas pelo useAcesso().
@@ -141,7 +141,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (!session && !isPublic) return <Carregando />;
   if (session && isPublic) return <Carregando />;
 
-  // Sem login numa página pública (login/cadastro): mostra a página sem menu
+  // Sem login numa página pública (login): mostra a página sem menu
   if (isPublic) return <>{children}</>;
 
   // Logado: falta saber o que essa pessoa pode fazer
