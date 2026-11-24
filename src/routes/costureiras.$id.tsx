@@ -15,7 +15,6 @@ import {
   hojeISO,
   listarApontamentos,
   listarSessoes,
-  listarSessoesPorData,
   metaSessao,
   tempoMedioHistorico,
   type ApontamentoProducao,
@@ -101,11 +100,11 @@ function PerfilCostureira() {
 
       setCostureira(pessoa);
 
-      const [sessoesDaData, sessoesSemData, todasSessoes] = await Promise.all([
-        listarSessoesPorData(id, data),
-        listarSessoesPorData(id, null),
-        listarSessoes(id),
-      ]);
+      // Uma única consulta traz o histórico inteiro; a data escolhida e as
+      // sessões "sem data" são separadas aqui, sem ir ao banco de novo.
+      const todasSessoes = await listarSessoes(id);
+      const sessoesDaData = todasSessoes.filter((sessao) => sessao.data === data);
+      const sessoesSemData = todasSessoes.filter((sessao) => sessao.data === null);
       const todosApontamentos = await listarApontamentos(
         todasSessoes.map((s) => s.id),
       );

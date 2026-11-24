@@ -47,15 +47,16 @@ export type ApontamentoProducao = {
 };
 
 export async function listarSessoes(costureiraId: string) {
-  const { data, error } = await supabase
-    .from("sessoes_producao")
-    .select("*")
-    .eq("costureira_id", costureiraId)
-    .order("data", { ascending: false })
-    .order("sequencia", { ascending: true });
-
-  if (error) throw error;
-  return (data ?? []) as SessaoProducao[];
+  return paginarConsulta<SessaoProducao>((inicio, fim) =>
+    supabase
+      .from("sessoes_producao")
+      .select("*")
+      .eq("costureira_id", costureiraId)
+      .order("data", { ascending: false })
+      .order("sequencia", { ascending: true })
+      .order("id", { ascending: true })
+      .range(inicio, fim),
+  );
 }
 
 export async function listarSessoesPorData(
