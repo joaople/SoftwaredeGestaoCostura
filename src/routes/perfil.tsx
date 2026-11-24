@@ -1,14 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { KeyRound, UserRound } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -16,42 +10,63 @@ export const Route = createFileRoute("/perfil")({
   component: Perfil,
 });
 
-type Usuario = {
-  id: string;
-  email: string | null;
-  ultimoAcesso: string | null;
-};
-
 type Mensagem = { tipo: "ok" | "erro"; texto: string };
 
-function MensagemInline({ mensagem }: { mensagem: Mensagem | null }) {
-  if (!mensagem) return null;
+// Campo de senha com o olhinho para mostrar/ocultar o que foi digitado
+function CampoSenha({
+  id,
+  rotulo,
+  valor,
+  onChange,
+  autoComplete,
+  minLength,
+}: {
+  id: string;
+  rotulo: string;
+  valor: string;
+  onChange: (valor: string) => void;
+  autoComplete: string;
+  minLength?: number;
+}) {
+  const [visivel, setVisivel] = useState(false);
+
   return (
-    <p
-      role={mensagem.tipo === "erro" ? "alert" : "status"}
-      className={`text-sm ${
-        mensagem.tipo === "erro" ? "text-red-600" : "text-emerald-600"
-      }`}
-    >
-      {mensagem.texto}
-    </p>
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{rotulo}</Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={visivel ? "text" : "password"}
+          autoComplete={autoComplete}
+          minLength={minLength}
+          maxLength={128}
+          required
+          value={valor}
+          onChange={(e) => onChange(e.target.value)}
+          className="pr-11"
+        />
+        <button
+          type="button"
+          onClick={() => setVisivel((v) => !v)}
+          aria-label={visivel ? "Ocultar senha" : "Mostrar senha"}
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--sea-ink-soft)] hover:text-[var(--foreground)]"
+        >
+          {visivel ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      </div>
+    </div>
   );
 }
 
 function Perfil() {
   const navigate = useNavigate();
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [nomeSalvo, setNomeSalvo] = useState("");
-  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [salvandoNome, setSalvandoNome] = useState(false);
-  const [msgNome, setMsgNome] = useState<Mensagem | null>(null);
 
   const [atual, setAtual] = useState("");
   const [nova, setNova] = useState("");
-  const [confirmacao, setConfirmacao] = useState("");
-  const [salvandoSenha, setSalvandoSenha] = useState(false);
-  const [msgSenha, setMsgSenha] = useState<Mensagem | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [mensagem, setMensagem] = useState<Mensagem | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -63,23 +78,7 @@ function Perfil() {
         void navigate({ to: "/login" });
         return;
       }
-
-      const { data: perfil, error: erroPerfil } = await supabase
-        .from("perfis")
-        .select("nome_exibicao")
-        .eq("id", data.user.id)
-        .maybeSingle();
-      if (!ativo) return;
-      if (erroPerfil) console.error(erroPerfil);
-
-      const nomePerfil = (perfil?.nome_exibicao as string | null) ?? "";
-      setUsuario({
-        id: data.user.id,
-        email: data.user.email ?? null,
-        ultimoAcesso: data.user.last_sign_in_at ?? null,
-      });
-      setNomeSalvo(nomePerfil);
-      setNome(nomePerfil);
+      setEmail(data.user.email ?? null);
       setCarregando(false);
     }
 
@@ -89,56 +88,28 @@ function Perfil() {
     };
   }, [navigate]);
 
-  async function salvarNome(e: FormEvent) {
-    e.preventDefault();
-    if (!usuario) return;
-
-    const limpo = nome.trim().slice(0, 80);
-    setSalvandoNome(true);
-    setMsgNome(null);
-    const { error } = await supabase.from("perfis").upsert({
-      id: usuario.id,
-      nome_exibicao: limpo || null,
-      updated_at: new Date().toISOString(),
-    });
-    setSalvandoNome(false);
-
-    if (error) {
-      console.error(error);
-      setMsgNome({ tipo: "erro", texto: "Não foi possível salvar o nome." });
-      return;
-    }
-    setNomeSalvo(limpo);
-    setNome(limpo);
-    setMsgNome({ tipo: "ok", texto: "Nome salvo." });
-  }
-
   async function alterarSenha(e: FormEvent) {
     e.preventDefault();
-    setMsgSenha(null);
+    setMensagem(null);
 
     if (nova.length < 8) {
-      setMsgSenha({
+      setMensagem({
         tipo: "erro",
         texto: "A nova senha precisa ter pelo menos 8 caracteres.",
       });
       return;
     }
-    if (nova !== confirmacao) {
-      setMsgSenha({ tipo: "erro", texto: "As senhas não coincidem." });
-      return;
-    }
 
-    setSalvandoSenha(true);
+    setSalvando(true);
     const { error } = await supabase.auth.updateUser({
       password: nova,
       current_password: atual,
     });
-    setSalvandoSenha(false);
+    setSalvando(false);
 
     if (error) {
       const msg = error.message.toLowerCase();
-      setMsgSenha({
+      setMensagem({
         tipo: "erro",
         texto:
           msg.includes("current") || msg.includes("invalid")
@@ -152,130 +123,52 @@ function Perfil() {
 
     setAtual("");
     setNova("");
-    setConfirmacao("");
-    setMsgSenha({ tipo: "ok", texto: "Senha alterada." });
+    setMensagem({ tipo: "ok", texto: "Senha alterada." });
   }
-
-  const formatarDataHora = (valor: string | null) =>
-    valor ? new Date(valor).toLocaleString("pt-BR") : "—";
-
-  if (carregando) {
-    return (
-      <main className="mx-auto min-h-screen max-w-2xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
-        <p className="text-sm text-[var(--sea-ink-soft)]">Carregando...</p>
-      </main>
-    );
-  }
-
-  const inicial = (nomeSalvo || usuario?.email || "?").charAt(0).toUpperCase();
 
   return (
-    <main className="mx-auto min-h-screen max-w-2xl bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
-      <header className="mb-8 flex items-center gap-4">
-        <span className="flex size-14 items-center justify-center rounded-full bg-primary text-xl font-semibold text-primary-foreground">
-          {inicial}
-        </span>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {nomeSalvo || "Meu perfil"}
-          </h1>
-          <p className="text-sm text-[var(--sea-ink-soft)]">{usuario?.email}</p>
-        </div>
-      </header>
+    <main className="mx-auto min-h-screen max-w-md bg-[var(--bg-base)] px-5 py-10 text-[var(--foreground)]">
+      {carregando ? (
+        <p className="text-sm text-[var(--sea-ink-soft)]">Carregando...</p>
+      ) : (
+        <>
+          <h1 className="text-3xl font-bold tracking-tight">Alterar senha</h1>
+          <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">{email}</p>
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserRound className="size-4" />
-              Meus dados
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={salvarNome} className="space-y-2">
-              <Label htmlFor="nome">Nome</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="nome"
-                  value={nome}
-                  maxLength={80}
-                  placeholder="Seu nome"
-                  onChange={(e) => setNome(e.target.value)}
-                />
-                <Button type="submit" disabled={salvandoNome}>
-                  {salvandoNome ? "Salvando..." : "Salvar"}
-                </Button>
-              </div>
-              <MensagemInline mensagem={msgNome} />
-            </form>
+          <form onSubmit={alterarSenha} className="mt-8 space-y-4">
+            <CampoSenha
+              id="senha-atual"
+              rotulo="Senha atual"
+              valor={atual}
+              onChange={setAtual}
+              autoComplete="current-password"
+            />
+            <CampoSenha
+              id="senha-nova"
+              rotulo="Nova senha"
+              valor={nova}
+              onChange={setNova}
+              autoComplete="new-password"
+              minLength={8}
+            />
 
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-[var(--sea-ink-soft)]">E-mail</dt>
-                <dd className="font-medium">{usuario?.email}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--sea-ink-soft)]">Último acesso</dt>
-                <dd className="font-medium">
-                  {formatarDataHora(usuario?.ultimoAcesso ?? null)}
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
+            {mensagem && (
+              <p
+                role={mensagem.tipo === "erro" ? "alert" : "status"}
+                className={`text-sm ${
+                  mensagem.tipo === "erro" ? "text-red-600" : "text-emerald-600"
+                }`}
+              >
+                {mensagem.texto}
+              </p>
+            )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <KeyRound className="size-4" />
-              Alterar senha
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={alterarSenha} className="space-y-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="senha-atual">Senha atual</Label>
-                <Input
-                  id="senha-atual"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={atual}
-                  onChange={(e) => setAtual(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="senha-nova">Nova senha</Label>
-                <Input
-                  id="senha-nova"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  maxLength={128}
-                  required
-                  value={nova}
-                  onChange={(e) => setNova(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="senha-confirmacao">Confirmar nova senha</Label>
-                <Input
-                  id="senha-confirmacao"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={confirmacao}
-                  onChange={(e) => setConfirmacao(e.target.value)}
-                />
-              </div>
-              <MensagemInline mensagem={msgSenha} />
-              <Button type="submit" disabled={salvandoSenha}>
-                {salvandoSenha ? "Salvando..." : "Alterar senha"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+            <Button type="submit" disabled={salvando}>
+              {salvando ? "Salvando..." : "Alterar senha"}
+            </Button>
+          </form>
+        </>
+      )}
     </main>
   );
 }
