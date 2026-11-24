@@ -14,12 +14,17 @@ import {
   formatarMinutos,
   hojeISO,
   listarApontamentos,
-  listarSessoes,
+  listarSessoesPorData,
   metaSessao,
-  tempoMedioHistorico,
   type ApontamentoProducao,
   type SessaoProducao,
 } from "@/lib/production";
+import {
+  listarOperacoes,
+  listarTemposOperacao,
+  type Operacao,
+  type TempoOperacao,
+} from "@/lib/tarefas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,10 +56,9 @@ function PerfilCostureira() {
   const [costureira, setCostureira] = useState<Costureira | null>(null);
   const [sessoes, setSessoes] = useState<SessaoProducao[]>([]);
   const [apontamentos, setApontamentos] = useState<ApontamentoProducao[]>([]);
-  const [sessoesHistorico, setSessoesHistorico] = useState<SessaoProducao[]>([]);
-  const [apontamentosHistorico, setApontamentosHistorico] = useState<
-    ApontamentoProducao[]
-  >([]);
+  // Tarefas cadastradas na tela Tarefas e os tempos desta costureira em cada uma
+  const [operacoes, setOperacoes] = useState<Operacao[]>([]);
+  const [tempos, setTempos] = useState<TempoOperacao[]>([]);
   const [dataSelecionada, setDataSelecionada] = useState(hojeISO());
   const [loading, setLoading] = useState(true);
   const [naoEncontrada, setNaoEncontrada] = useState(false);
@@ -100,27 +104,23 @@ function PerfilCostureira() {
 
       setCostureira(pessoa);
 
-      // Uma única consulta traz o histórico inteiro; a data escolhida e as
-      // sessões "sem data" são separadas aqui, sem ir ao banco de novo.
-      const todasSessoes = await listarSessoes(id);
-      const sessoesDaData = todasSessoes.filter((sessao) => sessao.data === data);
-      const sessoesSemData = todasSessoes.filter((sessao) => sessao.data === null);
-      const todosApontamentos = await listarApontamentos(
-        todasSessoes.map((s) => s.id),
+      const [sessoesDaData, sessoesSemData, listaOperacoes, listaTempos] =
+        await Promise.all([
+          listarSessoesPorData(id, data),
+          listarSessoesPorData(id, null),
+          listarOperacoes(),
+          listarTemposOperacao(id),
+        ]);
+      const sessoesVisiveis = [...sessoesDaData, ...sessoesSemData];
+      const apontamentosVisiveis = await listarApontamentos(
+        sessoesVisiveis.map((sessao) => sessao.id),
       );
       if (!estaAtivo()) return;
-      const idsVisiveis = new Set(
-        [...sessoesDaData, ...sessoesSemData].map((sessao) => sessao.id),
-      );
 
-      setSessoes([...sessoesDaData, ...sessoesSemData]);
-      setApontamentos(
-        todosApontamentos.filter((apontamento) =>
-          idsVisiveis.has(apontamento.sessao_id),
-        ),
-      );
-      setSessoesHistorico(todasSessoes);
-      setApontamentosHistorico(todosApontamentos);
+      setSessoes(sessoesVisiveis);
+      setApontamentos(apontamentosVisiveis);
+      setOperacoes(listaOperacoes);
+      setTempos(listaTempos);
     } catch (e: any) {
       console.error(e);
       if (estaAtivo()) {
@@ -321,10 +321,11 @@ function PerfilCostureira() {
 
       <NovaSessaoForm
         onSubmit={handleCriarSessao}
-        sessoes={sessoesHistorico}
-        apontamentos={apontamentosHistorico}
+        nomeCostureira={costureira?.nome ?? ""}
+        operacoes={operacoes}
+        tempos={tempos}
         proximaSequencia={
-          sessoesHistorico.filter((s) => s.data === dataSelecionada).length + 1
+          sessoes.filter((s) => s.data === dataSelecionada).length + 1
         }
       />
 
@@ -497,8 +498,9 @@ function PerfilCostureira() {
 function NovaSessaoForm({
   onSubmit,
   proximaSequencia,
-  sessoes,
-  apontamentos,
+  nomeCostureira,
+  operacoes,
+  tempos,
 }: {
   onSubmit: (v: {
     data: string;
@@ -508,15 +510,23 @@ function NovaSessaoForm({
     tempo_padrao: number;
   }) => void;
   proximaSequencia: number;
-  sessoes: SessaoProducao[];
-  apontamentos: ApontamentoProducao[];
+  nomeCostureira: string;
+  operacoes: Operacao[];
+  tempos: TempoOperacao[];
 }) {
   const [aberto, setAberto] = useState(false);
   const [data, setData] = useState(hojeISO());
   const [inicio, setInicio] = useState("07:30");
-  const [operacao, setOperacao] = useState("");
-  const [tp, setTp] = useState("");
-  const tempoMedio = tempoMedioHistorico(operacao, sessoes, apontamentos);
+  const [operacaoId, setOperacaoId] = useState("");
+
+  // Tempo (min/peça) desta costureira em cada tarefa, definido na tela Tarefas
+  const tempoPorOperacao = useMemo(
+    () => new Map(tempos.map((t) => [t.operacao_id, Number(t.minutos_por_peca)])),
+    [tempos],
+  );
+  const operacao = operacoes.find((o) => o.id === operacaoId);
+  const tp = operacao ? tempoPorOperacao.get(operacao.id) : undefined;
+  const algumaComTempo = operacoes.some((o) => tempoPorOperacao.has(o.id));
 
   if (!aberto) {
     return (
@@ -528,16 +538,16 @@ function NovaSessaoForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!operacao || tp === undefined || tp <= 0) return;
     onSubmit({
       data,
       sequencia: proximaSequencia,
       hora_inicio: inicio,
-      operacao,
-      tempo_padrao: Number(tp),
+      operacao: operacao.nome,
+      tempo_padrao: tp,
     });
     setAberto(false);
-    setOperacao("");
-    setTp("");
+    setOperacaoId("");
   }
 
   return (
@@ -562,36 +572,50 @@ function NovaSessaoForm({
           required
         />
       </Campo>
-      <Campo label="Operação">
-        <Input
-          value={operacao}
-          onChange={(e) => {
-            const valor = e.target.value;
-            setOperacao(valor);
-            const media = tempoMedioHistorico(valor, sessoes, apontamentos);
-            setTp(media === null ? "" : media.toFixed(2));
-          }}
-          placeholder="20 - FECHAR LATERAL"
+      <Campo label="Tarefa" largura="w-72">
+        <select
+          value={operacaoId}
+          onChange={(e) => setOperacaoId(e.target.value)}
           required
-        />
-      </Campo>
-      <Campo label="TP (min/peça)">
-        <Input
-          type="number"
-          step="0.01"
-          min="0.01"
-          value={tp}
-          onChange={(e) => setTp(e.target.value)}
-          required
-        />
+          className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+        >
+          <option value="">Selecione a tarefa</option>
+          {operacoes.map((o) => (
+            <option key={o.id} value={o.id} disabled={!tempoPorOperacao.has(o.id)}>
+              {o.nome}
+              {tempoPorOperacao.has(o.id) ? "" : " (sem tempo cadastrado)"}
+            </option>
+          ))}
+        </select>
       </Campo>
       <p className="w-full text-xs text-[var(--sea-ink-soft)]" aria-live="polite">
-        {tempoMedio === null
-          ? "Sem histórico de produção para esta operação. Informe o TP manualmente."
-          : `Média histórica desta operação: ${tempoMedio.toFixed(2)} min/peça.`}
+        {operacoes.length === 0 ? (
+          <>
+            Nenhuma tarefa cadastrada ainda.{" "}
+            <Link to="/tarefas" className="underline">
+              Cadastre na tela Tarefas
+            </Link>
+            .
+          </>
+        ) : !algumaComTempo ? (
+          <>
+            {nomeCostureira || "Esta costureira"} ainda não tem tempo cadastrado em
+            nenhuma tarefa.{" "}
+            <Link to="/tarefas" className="underline">
+              Cadastre na tela Tarefas
+            </Link>
+            .
+          </>
+        ) : tp !== undefined ? (
+          `Tempo padrão (TP) desta tarefa para ${nomeCostureira || "a costureira"}: ${tp
+            .toFixed(2)
+            .replace(".", ",")} min/peça (definido na tela Tarefas).`
+        ) : (
+          "O tempo padrão vem da tela Tarefas."
+        )}
       </p>
       <div className="flex gap-2">
-        <Button type="submit" size="sm">
+        <Button type="submit" size="sm" disabled={tp === undefined}>
           Criar
         </Button>
         <Button
@@ -676,14 +700,16 @@ function NovoApontamentoForm({
 function Campo({
   label,
   children,
+  largura = "w-40",
 }: {
   label: string;
   children: React.ReactNode;
+  largura?: string;
 }) {
   return (
     <div className="grid gap-1">
       <Label className="text-xs text-[var(--sea-ink-soft)]">{label}</Label>
-      <div className="w-40">{children}</div>
+      <div className={largura}>{children}</div>
     </div>
   );
 }
