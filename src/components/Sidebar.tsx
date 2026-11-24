@@ -129,7 +129,7 @@ export function Sidebar() {
           }`}
         >
           <UserRound className="h-4 w-4" />
-          Meu perfil
+          Minha conta
         </Link>
       </nav>
 
