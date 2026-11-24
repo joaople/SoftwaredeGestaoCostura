@@ -37,8 +37,10 @@ export async function listarOperacoes() {
   return (data ?? []) as Operacao[];
 }
 
-export async function listarTemposOperacao() {
-  const { data, error } = await supabase.from("tempos_operacao").select("*");
+export async function listarTemposOperacao(costureiraId?: string) {
+  let consulta = supabase.from("tempos_operacao").select("*");
+  if (costureiraId) consulta = consulta.eq("costureira_id", costureiraId);
+  const { data, error } = await consulta;
   if (error) throw error;
   return (data ?? []) as TempoOperacao[];
 }
